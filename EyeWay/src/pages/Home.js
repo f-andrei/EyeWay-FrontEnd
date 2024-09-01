@@ -1,87 +1,95 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; 
 import Navbar from '../components/Navbar'; 
 
 export default function Home({ navigation }) {
   return (
     <View style={estilos.container}>
-      <View style={estilos.logoContainer}>
+      <View style={estilos.containerLogo}>
         <Image 
           source={require('../assets/LogoComNomeCompletoEyeWay.png')} 
           style={estilos.logo} 
         />
       </View>
 
-      <View style={estilos.conteudo}>
-        <View style={estilos.linkContainer}>
-          <Text style={estilos.linkTexto}>Envie aqui a URL do vídeo</Text>
-          <Ionicons name="link-outline" size={24} color="#C26015" /> 
-        </View>
-
-        <TouchableOpacity style={estilos.linkBotao}>
-          <Text style={estilos.textoLinkBotao}>www.youtube.com/seuvideo</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={estilos.botao}>
-          <Text style={estilos.textoBotao}>Enviar</Text>
-        </TouchableOpacity>
+      <View style={estilos.containerDescricao}>
+        <Text style={estilos.textoDescricao}>
+          Envie o link do vídeo (ao vivo ou gravado) para processamento. 
+          O sistema detectará possíveis infrações e gerará alertas e estatísticas detalhadas para acompanhamento.
+        </Text>
       </View>
 
+      <View style={estilos.containerInputUrl}>
+        <Text style={estilos.Url}>Envie aqui a URL do vídeo</Text>
+        <Ionicons name="link-outline" size={24} color="#C26015" style={estilos.iconeUrl} /> 
+      </View>
+
+      <TouchableOpacity style={estilos.botaoInputUrl}>
+        <Text style={estilos.textoBotaoInputUrl}>www.youtube.com/seuvideo</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={estilos.botaoEnviar}>
+        <Text style={estilos.textoBotaoEnviar}>Enviar</Text>
+      </TouchableOpacity>
+      
       <Navbar navigation={navigation} />
     </View>
   );
 }
-
-// Pega a largura e altura da tela do dispositivo
-// Agora você pode usar `width` e `height` para fazer o design do seu app se ajustar ao tamanho da tela
-// Por exemplo, definir a largura de um botão com o (`width * 0.9`) faz com que ele ocupe 90% da largura da tela
-const { width, height } = Dimensions.get('window');
 
 const estilos = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#3E3C3C',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'space-between', 
+    paddingVertical: 40,
   },
-  logoContainer: {
-    flex: 1,
-    justifyContent: 'flex-start', 
+  containerLogo: {
     alignItems: 'center',
-    marginTop: 50,  
+    marginBottom: 30,
     width: '100%',
   },
   logo: {
-    width: width * 0.8,
-    height: height * 0.18, 
+    width: '80%',
+    height: 120,
     resizeMode: 'contain',
   },
-  conteudo: {
-    flex: 2, 
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
+  containerDescricao: {
+    backgroundColor: '#3E3C3C',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 30,
+    width: '90%',
   },
-  linkContainer: {
+  textoDescricao: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  containerInputUrl: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 5,
   },
-  linkTexto: {
+  Url: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
-    marginRight: 10, 
+    marginRight: 10,
   },
-  linkBotao: {
+  iconeUrl: {
+    marginLeft: 5,
+  },
+  botaoInputUrl: {
     backgroundColor: '#114354',
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderRadius: 5,
-    width: width * 0.9, 
-    marginBottom: 50, 
+    width: '90%',
+    marginBottom: 40,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -89,26 +97,25 @@ const estilos = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  textoLinkBotao: {
+  textoBotaoInputUrl: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  botao: {
+  botaoEnviar: {
     backgroundColor: '#114354',
     paddingVertical: 15,
-    paddingHorizontal: 40,
     borderRadius: 5,
-    width: width * 0.9, 
+    width: '90%',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
-    marginBottom: 30, 
+    marginBottom: 140,
   },
-  textoBotao: {
+  textoBotaoEnviar: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
