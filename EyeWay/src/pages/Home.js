@@ -21,10 +21,11 @@ export default function Home({ navigation }) {
       </View>
 
       <View style={estilos.containerInputUrl}>
-        <Text style={estilos.Url}>Envie aqui a URL do vídeo</Text>
+        <Text style={estilos.Url}>Envie aqui a URL do vídeo ⭣</Text>
         <Ionicons name="link-outline" size={24} color="#C26015" style={estilos.iconeUrl} /> 
       </View>
 
+      {/*trocar por INPUT, não deixar como botão!!!!!!!!!*/}
       <TouchableOpacity style={estilos.botaoInputUrl}>
         <Text style={estilos.textoBotaoInputUrl}>www.youtube.com/seuvideo</Text>
       </TouchableOpacity>

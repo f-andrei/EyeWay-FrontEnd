@@ -27,7 +27,7 @@ export default function Live({ navigation }) {
 
       <View style={estilos.containerInfo}>
         <Text style={estilos.infoTexto}>ID da Câmera: 123456</Text>
-        <Text style={estilos.infoTexto}>Local: Avenida Central, 123</Text>
+        <Text style={estilos.infoTexto}>Local: Rua Estados Unidos, 10</Text>
       </View>
 
       <Navbar navigation={navigation} />
