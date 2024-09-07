@@ -1,15 +1,21 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import Navbar from '../components/Navbar';
 
 export default function Live({ navigation }) {
+  const player = useVideoPlayer("http://sample.vodobox.com/skate_phantom_flex_4k/skate_phantom_flex_4k.m3u8", player => {
+    player.loop = true;
+    player.play();
+  });
+
   return (
     <View style={estilos.container}>
       <View style={estilos.containerLogo}>
-        <Image 
-          source={require('../assets/LogoComNomeCompletoEyeWay.png')} 
-          style={estilos.logo} 
+        <Image
+          source={require('../assets/LogoComNomeCompletoEyeWay.png')}
+          style={estilos.logo}
         />
       </View>
 
@@ -19,10 +25,11 @@ export default function Live({ navigation }) {
       </View>
 
       <View style={estilos.containerVideo}>
-        <Text style={estilos.textoVideo}>Espaço para o vídeo da câmera</Text>
-        <TouchableOpacity style={estilos.iconeRotacao}>
-          <Ionicons name="rotate-outline" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <VideoView
+          player={player}
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="contain"
+        />
       </View>
 
       <View style={estilos.containerInfo}>
@@ -42,7 +49,7 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 40,
-    paddingBottom: 70, 
+    paddingBottom: 70,
   },
   containerLogo: {
     alignItems: 'center',
@@ -51,7 +58,7 @@ const estilos = StyleSheet.create({
   },
   logo: {
     width: '80%',
-    height: 120, 
+    height: 120,
     resizeMode: 'contain',
   },
   containerDescricao: {
@@ -72,7 +79,7 @@ const estilos = StyleSheet.create({
   containerVideo: {
     backgroundColor: '#000000',
     width: '90%',
-    height: 200, 
+    height: 200,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
