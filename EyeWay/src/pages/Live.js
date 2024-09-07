@@ -1,40 +1,43 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
+import { Video } from 'expo-av';
 import Navbar from '../components/Navbar';
 
 export default function Live({ navigation }) {
-  const player = useVideoPlayer("http://sample.vodobox.com/skate_phantom_flex_4k/skate_phantom_flex_4k.m3u8", player => {
-    player.loop = true;
-    player.play();
-  });
+  const videoWidth = Dimensions.get('window').width * 0.9;
+  const videoHeight = videoWidth * 9 / 16;
 
   return (
-    <View style={estilos.container}>
-      <View style={estilos.containerLogo}>
+    <View style={styles.container}>
+      <View style={styles.containerLogo}>
         <Image
           source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-          style={estilos.logo}
+          style={styles.logo}
         />
       </View>
 
-      <View style={estilos.containerDescricao}>
-        <Text style={estilos.textoTitulo}>AO VIVO</Text>
-        <Text style={estilos.textoSubtitulo}>Transmissão em tempo real</Text>
+      <View style={styles.containerDescricao}>
+        <Text style={styles.textoTitulo}>AO VIVO</Text>
+        <Text style={styles.textoSubtitulo}>Transmissão em tempo real</Text>
       </View>
 
-      <View style={estilos.containerVideo}>
-        <VideoView
-          player={player}
-          style={{ width: '100%', height: '100%' }}
+      <View style={styles.containerVideo}>
+        <Video
+          source={{ uri: 'http://10.0.2.2:8085/stream.m3u8' }}
+          rate={1.0}
+          volume={1.0}
+          isMuted={false}
           resizeMode="contain"
+          shouldPlay
+          isLooping
+          useNativeControls
+          style={{ width: videoWidth, height: videoHeight }}
         />
       </View>
 
-      <View style={estilos.containerInfo}>
-        <Text style={estilos.infoTexto}>ID da Câmera: 123456</Text>
-        <Text style={estilos.infoTexto}>Local: Rua Estados Unidos, 10</Text>
+      <View style={styles.containerInfo}>
+        <Text style={styles.infoTexto}>ID da Câmera: 123456</Text>
+        <Text style={styles.infoTexto}>Local: Rua Estados Unidos, 10</Text>
       </View>
 
       <Navbar navigation={navigation} />
@@ -42,7 +45,7 @@ export default function Live({ navigation }) {
   );
 }
 
-const estilos = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#3E3C3C',
@@ -85,19 +88,6 @@ const estilos = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 20,
     position: 'relative',
-  },
-  textoVideo: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  iconeRotacao: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    backgroundColor: '#114354',
-    borderRadius: 25,
-    padding: 5,
   },
   containerInfo: {
     backgroundColor: '#3E3C3C',
