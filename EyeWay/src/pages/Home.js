@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; 
 import Navbar from '../components/Navbar'; 
 
@@ -25,10 +25,10 @@ export default function Home({ navigation }) {
         <Ionicons name="link-outline" size={24} color="#C26015" style={estilos.iconeUrl} /> 
       </View>
 
-      {/*trocar por INPUT, não deixar como botão!!!!!!!!!*/}
-      <TouchableOpacity style={estilos.botaoInputUrl}>
-        <Text style={estilos.textoBotaoInputUrl}>www.youtube.com/seuvideo</Text>
-      </TouchableOpacity>
+        <SafeAreaView>
+          <TextInput style={estilos.textoBotaoInputUrl} placeholder='www.youtube.com/seuvideo'  placeholderTextColor="#A9A9A9" />
+        </SafeAreaView>
+      
 
       <TouchableOpacity style={estilos.botaoEnviar}>
         <Text style={estilos.textoBotaoEnviar}>Enviar</Text>
@@ -99,9 +99,20 @@ const estilos = StyleSheet.create({
     elevation: 4,
   },
   textoBotaoInputUrl: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+      backgroundColor: '#114354',
+      color: '#FFFFFF',
+      paddingVertical: 15,
+      paddingHorizontal: 15,
+      borderRadius: 5,
+      width: '100%',
+      marginBottom: 40,
+      fontSize: 14,
+      fontWeight: 'bold',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
   },
   botaoEnviar: {
     backgroundColor: '#114354',
