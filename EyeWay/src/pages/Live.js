@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
 import { Video } from 'expo-av';
 import Navbar from '../components/Navbar';
+import axios from 'axios';
+
 
 export default function Live({ navigation }) {
   const videoWidth = Dimensions.get('window').width * 0.9;
   const videoHeight = videoWidth * 9 / 16;
+  const [url,setUrl] = useState("")
+
+    useEffect( () => {
+      async function fetchData() {
+      const {data} = await axios.get("http://localhost:3000/video");
+      setUrl(data.video_url)
+      }
+      fetchData();
+  }, [] );
 
   return (
     <View style={styles.container}>
@@ -22,19 +33,21 @@ export default function Live({ navigation }) {
       </View>
 
       <View style={styles.containerVideo}>
-        <Video
-          source={{ uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }}
-          rate={1.0}
-          volume={1.0}
-          isMuted={false}
-          resizeMode="cover"
-          shouldPlay
-          isLooping
-          useNativeControls
-          videoStyle={{ width: "100%", height: "100%" }}
-          style={{ width: "100%", height: "100%"}}
+        {!!url &&   <Video
+        
+        source={{ uri: url }}
+        rate={1.0}
+        volume={1.0}
+        isMuted={false}
+        resizeMode="cover"
+        shouldPlay
+        isLooping
+        useNativeControls
+        videoStyle={{ width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%"}}
 
-        />
+      /> }
+      
       </View>
 
       <View style={styles.containerInfo}>

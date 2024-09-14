@@ -16,5 +16,6 @@ const estilos = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    overflow: "visible",
   },
 });
