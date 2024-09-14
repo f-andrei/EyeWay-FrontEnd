@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Video } from 'expo-av';
 import Navbar from '../components/Navbar';
 import axios from 'axios';
@@ -9,10 +9,10 @@ export default function Live({ navigation }) {
   const videoWidth = Dimensions.get('window').width * 0.9;
   const videoHeight = videoWidth * 9 / 16;
   const [url,setUrl] = useState("")
-
+  const platform_url = Platform.OS === 'android' ? "http://10.0.2.2:3000/video" : "http://localhost:3000/video";
     useEffect( () => {
       async function fetchData() {
-      const {data} = await axios.get("http://localhost:3000/video");
+      const {data} = await axios.get(platform_url);
       setUrl(data.video_url)
       }
       fetchData();
