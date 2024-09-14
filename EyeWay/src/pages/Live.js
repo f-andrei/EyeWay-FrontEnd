@@ -23,15 +23,17 @@ export default function Live({ navigation }) {
 
       <View style={styles.containerVideo}>
         <Video
-          source={{ uri: 'http://10.0.2.2:8085/stream.m3u8' }}
+          source={{ uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }}
           rate={1.0}
           volume={1.0}
           isMuted={false}
-          resizeMode="contain"
+          resizeMode="cover"
           shouldPlay
           isLooping
           useNativeControls
-          style={{ width: videoWidth, height: videoHeight }}
+          videoStyle={{ width: "100%", height: "100%" }}
+          style={{ width: "100%", height: "100%"}}
+
         />
       </View>
 
@@ -82,12 +84,13 @@ const styles = StyleSheet.create({
   containerVideo: {
     backgroundColor: '#000000',
     width: '90%',
-    height: 200,
+    height: "auto",
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
     marginBottom: 20,
     position: 'relative',
+    aspectRatio: 16/9,
   },
   containerInfo: {
     backgroundColor: '#3E3C3C',
