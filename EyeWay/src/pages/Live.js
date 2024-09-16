@@ -2,21 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Video } from 'expo-av';
 import Navbar from '../components/Navbar';
-import axios from 'axios';
-
 
 export default function Live({ navigation }) {
   const videoWidth = Dimensions.get('window').width * 0.9;
   const videoHeight = videoWidth * 9 / 16;
-  const [url,setUrl] = useState("")
-  const platform_url = Platform.OS === 'android' ? "http://10.0.2.2:3000/video" : "http://localhost:3000/video";
-    useEffect( () => {
-      async function fetchData() {
-      const {data} = await axios.get(platform_url);
-      setUrl(data.video_url)
-      }
-      fetchData();
-  }, [] );
+  const stream_url = "http://172.26.148.170:8085/stream/stream.m3u8";
 
   return (
     <View style={styles.container}>
@@ -33,9 +23,9 @@ export default function Live({ navigation }) {
       </View>
 
       <View style={styles.containerVideo}>
-        {!!url &&   <Video
+        {<Video
         
-        source={{ uri: url }}
+        source={{ uri: stream_url }}
         rate={1.0}
         volume={1.0}
         isMuted={false}
