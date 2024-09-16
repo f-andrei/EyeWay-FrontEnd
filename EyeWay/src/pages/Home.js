@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, SafeAreaView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/Navbar';
 import axios from 'axios';
 
 export default function Home({ navigation }) {
   const [url,setUrl] = useState();
-
+  const platform_url = Platform.OS === 'android' ? "http://10.0.2.2:5000/run-inference" : "http://localhost:5000/run-inference";
   async function uploadVideo() {
-   await axios.post("http://localhost:3000/video", {url});
+   const payload = {
+     source: url,
+     input_type: "video"
+   };
+   await axios.post(platform_url, payload);
    navigation.navigate('Live');
   }
 
