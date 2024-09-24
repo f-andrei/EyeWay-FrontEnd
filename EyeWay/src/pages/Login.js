@@ -39,7 +39,7 @@ export default function Login({ navigation }) {
             Senha:
         </Text>
 
-        <TextInput style={estilos.input} placeholder='senha1Forte@12' placeholderTextColor="#6c757d"></TextInput>
+        <TextInput style={estilos.input} placeholder='senhaexemplo' placeholderTextColor="#6c757d"></TextInput>
 
         <TouchableOpacity onPress={  login }>
         <Text style={estilos.buttonStyle}>Entrar</Text>
@@ -50,7 +50,6 @@ export default function Login({ navigation }) {
       <TouchableOpacity onPress={ () => navigation.navigate('SignUp')}>
         <Text style={estilos.buttonStyle}>Não possui uma conta?</Text>
         </TouchableOpacity>
-        <Text style={estilos.footer}>Copyright © 2024 EyeWay Inc. Todos os direitos reservados. EyeWay Inc. Brasil Ltda. CNPJ: 33.777.999/0000-09</Text>
     </View>
   );
 }
@@ -106,11 +105,5 @@ const estilos = StyleSheet.create({
       paddingHorizontal: 10,
       marginTop: 20,
       width: 'fit-content'
-    },
-    footer:{
-      position: 'absolute',
-      bottom: 0,
-      backgroundColor: '#C26015',
-      padding: 5,
-    },
+    }
   });

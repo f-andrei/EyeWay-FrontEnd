@@ -21,10 +21,6 @@ export default function Navbar({ navigation }) {
         <Ionicons name="stats-chart-outline" size={30} color="white" />
         <Text style={estilos.navTexto}>Estatísticas</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('Login')} style={estilos.navItem}>
-        <Ionicons name="stats-chart-outline" size={30} color="white" />
-        <Text style={estilos.navTexto}>Log</Text>
-      </TouchableOpacity>
     </View>
   );
 }
