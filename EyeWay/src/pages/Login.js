@@ -1,10 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, SafeAreaView, Platform, Button } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import Navbar from '../components/Navbar';
-import axios from 'axios';
+import React from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from 'react-native';
 import { useStore } from '../store/globalStore';
-
 
 export default function Login({ navigation }) {
     const { setAuthenticated  } = useStore();
@@ -13,97 +9,121 @@ export default function Login({ navigation }) {
         setAuthenticated(true);
     }
 
+    return (
+        <View style={estilos.container}>
+            <View style={estilos.containerLogo}>
+                <Image
+                    source={require('../assets/LogoComNomeCompletoEyeWay.png')}
+                    style={estilos.logo}
+                />
+            </View>
 
-  return (
-    <View style={estilos.container}>
-      <View style={estilos.containerLogo}>
-        <Image
-          source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-          style={estilos.logo}
-        />
-      </View>
-      <View style={estilos.containerTexto}>
-        <Text style={estilos.textColor}>
-            Entre na sua conta
-        </Text>
-      </View>
-      
-      <View style={estilos.card}>
-        <Text style={estilos.textInput}>
-            Email:
-        </Text>
+            <View style={estilos.containerTexto}>
+                <Text style={estilos.textColor}>
+                    Entre na sua conta
+                </Text>
+            </View>
+            
+            <View style={estilos.card}>
+                <Text style={estilos.textInput}>Email:</Text>
+                <TextInput 
+                    placeholder='user@email.com' 
+                    style={estilos.input} 
+                    placeholderTextColor="#b0b0b0" 
+                />
 
-        <TextInput placeholder='user@email.com' style={estilos.input} placeholderTextColor="#6c757d"></TextInput>
+                <Text style={estilos.textInput}>Senha:</Text>
+                <TextInput 
+                    placeholder='Senha' 
+                    style={estilos.input} 
+                    placeholderTextColor="#b0b0b0" 
+                    secureTextEntry
+                />
 
-        <Text style={estilos.textInput}>
-            Senha:
-        </Text>
+                <TouchableOpacity onPress={login} style={estilos.buttonContainer}>
+                    <Text style={estilos.buttonStyle}>Entrar</Text>
+                </TouchableOpacity>
+            </View>
 
-        <TextInput style={estilos.input} placeholder='senhaexemplo' placeholderTextColor="#6c757d"></TextInput>
-
-        <TouchableOpacity onPress={  login }>
-        <Text style={estilos.buttonStyle}>Entrar</Text>
-        </TouchableOpacity>
-        
-      </View>
-
-      <TouchableOpacity onPress={ () => navigation.navigate('SignUp')}>
-        <Text style={estilos.buttonStyle}>Não possui uma conta?</Text>
-        </TouchableOpacity>
-    </View>
-  );
+            <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+                <Text style={estilos.signupText}>Não possui uma conta?</Text>
+            </TouchableOpacity>
+        </View>
+    );
 }
 
 const estilos = StyleSheet.create({
     container: {
-      flex: 1,
-      backgroundColor: '#3E3C3C',
-      alignItems: 'center',
-      paddingVertical: 40,
+        flex: 1,
+        backgroundColor: '#2E2D2D',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
     },
     containerLogo: {
-      alignItems: 'center',
-      marginBottom: 30,
-      width: '100%',
+        alignItems: 'center',
+        marginBottom: 30,
+        width: '100%',
+    },
+    logo: {
+        width: '80%',
+        height: 120,  
+        resizeMode: 'contain',
     },
     containerTexto: {
-      alignContent: 'center',
+        marginBottom: 20,
+        alignItems: 'center',
     },
-    textColor:{
-      fontSize: 25,
-      color: '#6AA3A7',
+    textColor: {
+        fontSize: 26,
+        color: '#5AB1BB',
+        fontWeight: 'bold',
     },
-    textInput:{
-      marginTop:20,
-      fontSize: 14,
-      color: '#6AA3A7',
+    card: {
+        backgroundColor: '#1E1E1E',
+        padding: 25,
+        borderRadius: 15,
+        width: '85%',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 4,
+        marginBottom: 20,
     },
-    input:{
-        marginTop: 5,
+    textInput: {
+        fontSize: 16,
+        color: '#5AB1BB',
+        marginBottom: 10,
+        alignSelf: 'flex-start',
+    },
+    input: {
+        width: '100%',
         borderRadius: 5,
-        minWidth: 50,
-        minHeight: 10,
-        borderColor: '#343a40',
-        color: '#fff',
-        borderWidth: 2,
-        padding: 5,
-      
+        borderColor: '#404040',
+        backgroundColor: '#333',
+        borderWidth: 1,
+        padding: 10,
+        marginBottom: 15,
+        color: '#FFF',
     },
-    card:{
-      backgroundColor: '#202020',
-      marginTop: 30,
-      padding: 20,
-      borderRadius: 15,
-      minWidth: 350,
-      minHeight: 250,
+    buttonContainer: {
+        backgroundColor: '#FF9C11',
+        borderRadius: 5,
+        width: '100%',
+        paddingVertical: 12,
+        alignItems: 'center',
+        marginTop: 20,
     },
     buttonStyle: {
-      backgroundColor: '#FF9C11',
-      borderRadius: 5,
-      textColor: '#000',
-      paddingVertical: 5,
-      paddingHorizontal: 10,
-      marginTop: 20,
-      width: 'fit-content'
-    }
-  });
+        color: '#000',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    signupText: {
+        color: '#5AB1BB',
+        fontSize: 16,
+        marginTop: 20,
+        textDecorationLine: 'underline',
+    },
+});
