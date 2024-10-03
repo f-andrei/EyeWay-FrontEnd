@@ -1,119 +1,126 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, SafeAreaView, Platform, Button, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import Navbar from '../components/Navbar';
-import axios from 'axios';
+import React from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from 'react-native';
 import { useStore } from '../store/globalStore';
 
-export default function Login({ navigation }) {
-    const { setAuthenticated  } = useStore();
+export default function SignUp({ navigation }) {
+    const { setAuthenticated } = useStore();
 
-    function login(){
+    function cadastrar(){
         setAuthenticated(true);
     }
 
+    return (
+        <View style={estilos.container}>
+            <View style={estilos.containerLogo}>
+                <Image
+                    source={require('../assets/LogoComNomeCompletoEyeWay.png')}
+                    style={estilos.logo}
+                />
+            </View>
 
-  return (
-    <View style={estilos.container}>
-      <View style={estilos.containerLogo}>
-        <Image
-          source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-          style={estilos.logo}
-        />
-      </View>
-      <View style={estilos.containerTexto}>
-        <Text style={estilos.textColor}>
-            Crie sua Conta 
-        </Text>
-      </View>
-      
-      <View style={estilos.card}>
-      <Text style={estilos.textInput}>
-            Nome:
-        </Text>
+            <View style={estilos.containerTexto}>
+                <Text style={estilos.textColor}>
+                    Crie sua Conta
+                </Text>
+            </View>
 
-        <TextInput style={estilos.input} placeholder='João'placeholderTextColor="#6c757d"></TextInput>
+            <View style={estilos.card}>
+                <Text style={estilos.textInput}>Nome:</Text>
+                <TextInput 
+                    placeholder='João' 
+                    style={estilos.input} 
+                    placeholderTextColor="#b0b0b0" 
+                />
 
-        <Text style={estilos.textInput}>
-            Email:
-        </Text>
+                <Text style={estilos.textInput}>Email:</Text>
+                <TextInput 
+                    placeholder='user@email.com' 
+                    style={estilos.input} 
+                    placeholderTextColor="#b0b0b0" 
+                />
 
-        <TextInput style={estilos.input} placeholder='user@email.com'placeholderTextColor="#6c757d"></TextInput>
+                <Text style={estilos.textInput}>Senha:</Text>
+                <TextInput 
+                    placeholder='senha1Forte@12' 
+                    style={estilos.input} 
+                    placeholderTextColor="#b0b0b0" 
+                    secureTextEntry
+                />
 
-        <Text style={estilos.textInput}>
-            Senha:
-        </Text>
-
-        <TextInput style={estilos.input} placeholder='senha1Forte@12' placeholderTextColor="#6c757d"></TextInput>
-
-        <TouchableOpacity >
-        <Text style={estilos.buttonStyle}>Cadastrar</Text>
-        </TouchableOpacity>
-
-
-      </View>
-        <Text style={estilos.footer}>Copyright © 2024 EyeWay Inc. Todos os direitos reservados. EyeWay Inc. Brasil Ltda. CNPJ: 33.777.999/0000-09</Text>
-    </View>
-  );
+                <TouchableOpacity onPress={cadastrar} style={estilos.buttonContainer}>
+                    <Text style={estilos.buttonStyle}>Cadastrar</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
 }
 
 const estilos = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#3E3C3C',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  containerLogo: {
-    alignItems: 'center',
-    marginBottom: 30,
-    width: '100%',
-  },
-  containerTexto: {
-    alignContent: 'center',
-  },
-  textColor:{
-    fontSize: 25,
-    color: '#6AA3A7',
-  },
-  textInput:{
-    marginTop:20,
-    fontSize: 14,
-    color: '#6AA3A7',
-  },
-  input:{
-    marginTop: 5,
-    borderRadius: 5,
-    minWidth: 50,
-    minHeight: 10,
-    borderColor: '#343a40',
-    color: '#fff',
-    borderWidth: 2,
-    padding: 5,
-    
-  },
-  card:{
-    backgroundColor: '#202020',
-    marginTop: 30,
-    padding: 20,
-    borderRadius: 15,
-    minWidth: 350,
-    minHeight: 350,
-  },
-  buttonStyle: {
-    backgroundColor: '#FF9C11',
-    borderRadius: 5,
-    textColor: '#000',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    marginTop: 20,
-    width: 'fit-content'
-  },
-  footer:{
-    position: 'absolute',
-    bottom: 0,
-    backgroundColor: '#C26015',
-    padding: 5,
-
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#2E2D2D',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+    },
+    containerLogo: {
+        alignItems: 'center',
+        marginBottom: 30,
+        width: '100%',
+    },
+    logo: {
+        width: '80%',
+        height: 120,  
+        resizeMode: 'contain',
+    },
+    containerTexto: {
+        marginBottom: 20,
+        alignItems: 'center',
+    },
+    textColor: {
+        fontSize: 26,
+        color: '#5AB1BB',
+        fontWeight: 'bold',
+    },
+    card: {
+        backgroundColor: '#1E1E1E',
+        padding: 25,
+        borderRadius: 15,
+        width: '85%',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 4,
+        marginBottom: 20,
+    },
+    textInput: {
+        fontSize: 16,
+        color: '#5AB1BB',
+        marginBottom: 10,
+        alignSelf: 'flex-start',
+    },
+    input: {
+        width: '100%',
+        borderRadius: 5,
+        borderColor: '#404040',
+        backgroundColor: '#333',
+        borderWidth: 1,
+        padding: 10,
+        marginBottom: 15,
+        color: '#FFF',
+    },
+    buttonContainer: {
+        backgroundColor: '#FF9C11',
+        borderRadius: 5,
+        width: '100%',
+        paddingVertical: 12,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    buttonStyle: {
+        color: '#000',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
 });
