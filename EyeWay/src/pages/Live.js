@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions, Platform } from 'react-native';
+import React from 'react';
+import { View, Text, Image, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { Video } from 'expo-av';
 import Navbar from '../components/Navbar';
 
@@ -10,41 +10,38 @@ export default function Live({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.containerLogo}>
-        <Image
-          source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-          style={styles.logo}
-        />
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.containerLogo}>
+          <Image
+            source={require('../assets/LogoComNomeCompletoEyeWay.png')}
+            style={styles.logo}
+          />
+        </View>
 
-      <View style={styles.containerDescricao}>
-        <Text style={styles.textoTitulo}>AO VIVO</Text>
-        <Text style={styles.textoSubtitulo}>Transmissão em tempo real</Text>
-      </View>
+        <View style={styles.containerDescricao}>
+          <Text style={styles.textoTitulo}>AO VIVO</Text>
+          <Text style={styles.textoSubtitulo}>Transmissão em tempo real</Text>
+        </View>
 
-      <View style={styles.containerVideo}>
-        {<Video
-        
-        source={{ uri: stream_url }}
-        rate={1.0}
-        volume={1.0}
-        isMuted={false}
-        resizeMode="cover"
-        shouldPlay
-        isLooping
-        useNativeControls
-        videoStyle={{ width: "100%", height: "100%" }}
-        style={{ width: "100%", height: "100%"}}
+        <View style={styles.containerVideo}>
+          <Video
+            source={{ uri: stream_url }}
+            rate={1.0}
+            volume={1.0}
+            isMuted={false}
+            resizeMode="contain"
+            shouldPlay
+            isLooping
+            useNativeControls
+            style={{ width: videoWidth, height: videoHeight }}
+          />
+        </View>
 
-      /> }
-      
-      </View>
-
-      <View style={styles.containerInfo}>
-        <Text style={styles.infoTexto}>ID da Câmera: 123456</Text>
-        <Text style={styles.infoTexto}>Local: Rua Estados Unidos, 10</Text>
-      </View>
-
+        <View style={styles.containerInfo}>
+          <Text style={styles.infoTexto}>ID da Câmera: 123456</Text>
+          <Text style={styles.infoTexto}>Local: Rua Estados Unidos, 10</Text>
+        </View>
+      </ScrollView>
       <Navbar navigation={navigation} />
     </View>
   );
@@ -54,10 +51,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#3E3C3C',
+  },
+  scrollContainer: {
+    flexGrow: 1, 
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',  
     paddingVertical: 40,
-    paddingBottom: 70,
   },
   containerLogo: {
     alignItems: 'center',
@@ -85,15 +84,18 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   containerVideo: {
-    backgroundColor: '#000000',
-    width: '90%',
-    height: "auto",
+    marginBottom: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '90%',
+    backgroundColor: '#000',
     borderRadius: 10,
-    marginBottom: 20,
-    position: 'relative',
-    aspectRatio: 16/9,
+    overflow: 'hidden',
+  },
+  video: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 16 / 9,  
   },
   containerInfo: {
     backgroundColor: '#3E3C3C',
