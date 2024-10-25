@@ -5,15 +5,29 @@ import Navbar from '../components/Navbar';
 import axios from 'axios';
 
 export default function Home({ navigation }) {
-  const [url,setUrl] = useState();
+  const [url, setUrl] = useState();
+  const [hlsLive, setHlsLive] = useState(false);
   const platform_url = Platform.OS === 'android' ? "http://10.0.2.2:5000/run-inference" : "http://localhost:5000/run-inference";
+  const status_url = Platform.OS === 'android' ? "http://10.0.2.2:5000/stream-status" : "http://localhost:5000/stream-status";
+
   async function uploadVideo() {
-   const payload = {
-     source: url,
-     input_type: "video"
-   };
-   await axios.post(platform_url, payload);
-   navigation.navigate('Live');
+    const payload = {
+      source: url,
+      input_type: "yt_stream"
+    };
+    await axios.post(platform_url, payload);
+    checkStreamStatus();
+  }
+
+  async function checkStreamStatus() {
+    const interval = setInterval(async () => {
+      const response = await axios.get(status_url);
+      if (response.data.hls_live) {
+        clearInterval(interval);
+        setHlsLive(true);
+        navigation.navigate('Live');
+      }
+    }, 1000);
   }
 
   return (
