@@ -47,72 +47,58 @@ export default function Live({ navigation }) {
       styles.container,
       isWeb && { minHeight: '100vh' }
     ]}>
-      <ScrollView 
-        contentContainerStyle={[
-          styles.scrollContainer,
-          isWeb && styles.webScrollContainer
-        ]}
-      >
-        <View style={[
-          styles.contentWrapper,
-          isWeb && styles.webContentWrapper
-        ]}>
-          <View style={[
-            styles.headerContainer,
-            isWeb && styles.webHeaderContainer
-          ]}>
-            {!isWeb && (
-              <View style={styles.logoContainer}>
-                <Image
-                  source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-                  style={styles.logo}
-                />
-              </View>
-            )}
-            <View style={[
-              styles.headerTexts,
-              isWeb && styles.webHeaderTexts
-            ]}>
-              <Text style={[
-                styles.textoTitulo,
-                isWeb && styles.webTextoTitulo
-              ]}>AO VIVO</Text>
-              <Text style={[
-                styles.textoSubtitulo,
-                isWeb && styles.webTextoSubtitulo
-              ]}>Transmissão em tempo real</Text>
-            </View>
-          </View>
-
-          <View style={[
-            styles.containerVideo,
-            isWeb && styles.webContainerVideo,
-            { width: videoWidth }
-          ]}>
-            <AdaptiveVideoPlayer
-              source={{ uri: stream_url }}
-              style={{
-                width: videoWidth,
-                height: videoHeight,
-                borderRadius: isWeb ? 24 : 10,
-              }}
+      <ScrollView contentContainerStyle={[
+        styles.scrollContent,
+        isWeb && styles.webScrollContent
+      ]}>
+        {!isWeb && (
+          <View style={styles.containerLogo}>
+            <Image 
+              source={require('../assets/LogoComNomeCompletoEyeWay.png')} 
+              style={styles.logo} 
             />
           </View>
+        )}
 
-          <View style={[
-            styles.containerInfo,
-            isWeb && styles.webContainerInfo,
-            { maxWidth: videoWidth }
-          ]}>
-            <Text style={[
-              styles.infoTexto,
-              isWeb && styles.webInfoTexto
-            ]}>ID da Câmera: 123456</Text>
-            <Text style={[
-              styles.infoTexto,
-              isWeb && styles.webInfoTexto
-            ]}>Local: Rua Estados Unidos, 10</Text>
-          </View>
+        <View style={styles.containerDescricao}>
+          <Text style={[
+            styles.textoTitulo,
+            isWeb && styles.webTextoTitulo
+          ]}>AO VIVO</Text>
+          <Text style={[
+            styles.textoSubtitulo,
+            isWeb && styles.webTextoSubtitulo
+          ]}>Transmissão em tempo real</Text>
+        </View>
+
+        <View style={[
+          styles.containerVideo,
+          isWeb && styles.webContainerVideo,
+          { width: videoWidth }
+        ]}>
+          <AdaptiveVideoPlayer
+            source={{ uri: stream_url }}
+            style={{
+              width: videoWidth,
+              height: videoHeight,
+              borderRadius: isWeb ? 24 : 10,
+            }}
+          />
+        </View>
+
+        <View style={[
+          styles.containerInfo,
+          isWeb && styles.webContainerInfo,
+          { maxWidth: videoWidth }
+        ]}>
+          <Text style={[
+            styles.infoTexto,
+            isWeb && styles.webInfoTexto
+          ]}>ID da Câmera: 123456</Text>
+          <Text style={[
+            styles.infoTexto,
+            isWeb && styles.webInfoTexto
+          ]}>Local: Rua Estados Unidos, 10</Text>
         </View>
       </ScrollView>
       <Navbar navigation={navigation} />
@@ -124,53 +110,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#3E3C3C',
+    justifyContent: 'space-between',
   },
-  scrollContainer: {
+  scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingVertical: 20,
+    paddingBottom: 70,
   },
-  webScrollContainer: {
+  webScrollContent: {
     paddingTop: 10,
     paddingBottom: 30,
   },
-  contentWrapper: {
+  containerLogo: {
+    alignItems: 'center',
+    marginTop: 40,
+    marginBottom: 30,
     width: '100%',
-    alignItems: 'center',
-  },
-  webContentWrapper: {
-    maxWidth: 800, 
-    width: '99%',
-    paddingHorizontal: 0,
-  },
-  headerContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 0,
-    marginTop: -15,
-  },
-  webHeaderContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20, 
-    marginBottom: 0, 
-  },
-  logoContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingRight: 20, 
-  },
-  headerTexts: {
-    alignItems: Platform.OS === 'web' ? 'center' : 'center',
-  },
-  webHeaderTexts: {
-    alignItems: 'center',
   },
   logo: {
     width: '80%',
     height: 120,
     resizeMode: 'contain',
+  },
+  containerDescricao: {
+    marginBottom: 20,
+    width: '90%',
+    alignItems: 'center',
   },
   textoTitulo: {
     color: '#FFFFFF',
@@ -178,16 +143,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   webTextoTitulo: {
-    fontSize: 16, 
-    marginTop: 10, 
+    fontSize: 16,
+    marginTop: 10,
     marginBottom: 2,
-    fontWeight: 'bold',
   },
   textoSubtitulo: {
     color: '#FFFFFF',
-    fontSize: 24,
-    marginTop: 3,
-    marginBottom: 10
+    fontSize: 18,
+    marginTop: 5,
   },
   webTextoSubtitulo: {
     fontSize: 10,
@@ -202,7 +165,7 @@ const styles = StyleSheet.create({
   },
   webContainerVideo: {
     borderRadius: 12,
-    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)', 
+    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)',
     marginBottom: 20,
   },
   containerInfo: {
@@ -210,14 +173,14 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 10,
     marginBottom: 20,
-    width: '110%',
+    width: '90%',
     alignItems: 'center',
   },
   webContainerInfo: {
-    padding: 20, 
-    borderRadius: 12, 
+    padding: 20,
+    borderRadius: 12,
     backgroundColor: '#333',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)', 
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
   },
   infoTexto: {
     color: '#FFFFFF',
@@ -226,10 +189,6 @@ const styles = StyleSheet.create({
   },
   webInfoTexto: {
     fontSize: 12,
-    marginBottom: 4, 
-  },
-  webContainer: {
-    marginLeft: 75, 
-    width: 'calc(100% - 75px)', 
+    marginBottom: 4,
   },
 });
