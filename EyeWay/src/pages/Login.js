@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { 
-    View, 
-    Text, 
-    TouchableOpacity, 
-    Image, 
-    StyleSheet, 
-    TextInput, 
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    Image,
+    StyleSheet,
+    TextInput,
     Platform,
-    Dimensions 
+    Dimensions,
+    ScrollView
 } from 'react-native';
 import { useStore } from '../store/globalStore';
 import axios from 'axios';
@@ -18,19 +19,19 @@ export default function Login({ navigation }) {
 
     const { setAuthenticated } = useStore();
     const api_url = Platform.OS === 'android' ? "http://10.0.2.2:3000/login" : "http://localhost:3000/login";
-    
+
     async function login() {
-        try{
+        try {
             console.log(email, senha);
             const { data } = await axios.post(api_url, { email, senha });
             if (data.token?.length) {
                 setAuthenticated(true);
-                window.localStorage.setItem("token",data.token)
+                window.localStorage.setItem("token", data.token)
             }
-            else{
+            else {
                 alert("Erro ao logar");
             }
-        }catch(err){
+        } catch (err) {
             console.log("Erro ao logar");
         }
     }
@@ -47,149 +48,154 @@ export default function Login({ navigation }) {
                 backgroundColor: '#1E1E1E'
             }
         ]}>
-            <View style={[
-                estilos.card,
-                Platform.OS === 'web' && {
-                    maxWidth: 400,
-                    width: '90%',
-                    padding: 40,
-                    backgroundColor: '#2E2D2D',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)'
-                }
+            <ScrollView contentContainerStyle={[
+                styles.scrollContent,
+                isWeb && styles.webScrollContent
             ]}>
-                <View style={[estilos.containerLogo, { marginBottom: 40 }]}>
-                    <Image
-                        source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-                        style={[
-                            estilos.logo,
-                            Platform.OS === 'web' && { 
-                                width: 200,
-                                height: 80,
-                                marginBottom: 20
-                            }
-                        ]}
-                    />
-                </View>
-
-                <Text style={[
-                    estilos.textColor,
+                <View style={[
+                    estilos.card,
                     Platform.OS === 'web' && {
-                        fontSize: 28,
-                        marginBottom: 30,
-                        color: '#5AB1BB'
+                        maxWidth: 400,
+                        width: '90%',
+                        padding: 40,
+                        backgroundColor: '#2E2D2D',
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)'
                     }
                 ]}>
-                    Entre na sua conta
-                </Text>
-
-                <View style={{ width: '100%' }}>
-                    <Text style={[
-                        estilos.textInput,
-                        Platform.OS === 'web' && {
-                            color: '#5AB1BB',
-                            marginBottom: 8
-                        }
-                    ]}>Email:</Text>
-                    <TextInput 
-                        onChangeText={setEmail}
-                        placeholder='user@email.com'
-                        style={[
-                            estilos.input,
-                            Platform.OS === 'web' && {
-                                backgroundColor: '#1E1E1E',
-                                borderColor: '#404040',
-                                borderWidth: 1,
-                                borderRadius: 8,
-                                padding: 12,
-                                marginBottom: 20,
-                                color: '#FFFFFF',
-                                outline: 'none',
-                                width: '100%'
-                            }
-                        ]}
-                        placeholderTextColor="#666"
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                    />
-
-                    <Text style={[
-                        estilos.textInput,
-                        Platform.OS === 'web' && {
-                            color: '#5AB1BB',
-                            marginBottom: 8
-                        }
-                    ]}>Senha:</Text>
-                    <TextInput
-                        onChangeText={setSenha}
-                        placeholder='Senha'
-                        style={[
-                            estilos.input,
-                            Platform.OS === 'web' && {
-                                backgroundColor: '#1E1E1E',
-                                borderColor: '#404040',
-                                borderWidth: 1,
-                                borderRadius: 8,
-                                padding: 12,
-                                marginBottom: 30,
-                                color: '#FFFFFF',
-                                outline: 'none',
-                                width: '100%'
-                            }
-                        ]}
-                        placeholderTextColor="#666"
-                        secureTextEntry
-                        autoCapitalize="none"
-                    />
-
-                    <TouchableOpacity 
-                        onPress={login} 
-                        style={[
-                            estilos.buttonContainer,
-                            Platform.OS === 'web' && {
-                                backgroundColor: '#FF9C11',
-                                padding: 14,
-                                borderRadius: 8,
-                                width: '100%',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                marginBottom: 20,
-                                ':hover': {
-                                    backgroundColor: '#FFB443',
-                                    transform: 'translateY(-1px)'
+                    <View style={[estilos.containerLogo, { marginBottom: 40 }]}>
+                        <Image
+                            source={require('../assets/LogoComNomeCompletoEyeWay.png')}
+                            style={[
+                                estilos.logo,
+                                Platform.OS === 'web' && {
+                                    width: 200,
+                                    height: 80,
+                                    marginBottom: 20
                                 }
-                            }
-                        ]}
-                    >
-                        <Text style={[
-                            estilos.buttonStyle,
-                            Platform.OS === 'web' && {
-                                fontSize: 16,
-                                fontWeight: 'bold'
-                            }
-                        ]}>Entrar</Text>
-                    </TouchableOpacity>
+                            ]}
+                        />
+                    </View>
 
-                    <TouchableOpacity 
-                        onPress={() => navigation.navigate('SignUp')}
-                        style={Platform.OS === 'web' && { 
-                            alignItems: 'center',
-                            marginTop: 10
-                        }}
-                    >
+                    <Text style={[
+                        estilos.textColor,
+                        Platform.OS === 'web' && {
+                            fontSize: 28,
+                            marginBottom: 30,
+                            color: '#5AB1BB'
+                        }
+                    ]}>
+                        Entre na sua conta
+                    </Text>
+
+                    <View style={{ width: '100%' }}>
                         <Text style={[
-                            estilos.signupText,
+                            estilos.textInput,
                             Platform.OS === 'web' && {
                                 color: '#5AB1BB',
-                                textDecoration: 'underline',
-                                cursor: 'pointer'
+                                marginBottom: 8
                             }
-                        ]}>
-                            Não possui uma conta?
-                        </Text>
-                    </TouchableOpacity>
+                        ]}>Email:</Text>
+                        <TextInput
+                            onChangeText={setEmail}
+                            placeholder='user@email.com'
+                            style={[
+                                estilos.input,
+                                Platform.OS === 'web' && {
+                                    backgroundColor: '#1E1E1E',
+                                    borderColor: '#404040',
+                                    borderWidth: 1,
+                                    borderRadius: 8,
+                                    padding: 12,
+                                    marginBottom: 20,
+                                    color: '#FFFFFF',
+                                    outline: 'none',
+                                    width: '100%'
+                                }
+                            ]}
+                            placeholderTextColor="#666"
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                        />
+
+                        <Text style={[
+                            estilos.textInput,
+                            Platform.OS === 'web' && {
+                                color: '#5AB1BB',
+                                marginBottom: 8
+                            }
+                        ]}>Senha:</Text>
+                        <TextInput
+                            onChangeText={setSenha}
+                            placeholder='Senha'
+                            style={[
+                                estilos.input,
+                                Platform.OS === 'web' && {
+                                    backgroundColor: '#1E1E1E',
+                                    borderColor: '#404040',
+                                    borderWidth: 1,
+                                    borderRadius: 8,
+                                    padding: 12,
+                                    marginBottom: 30,
+                                    color: '#FFFFFF',
+                                    outline: 'none',
+                                    width: '100%'
+                                }
+                            ]}
+                            placeholderTextColor="#666"
+                            secureTextEntry
+                            autoCapitalize="none"
+                        />
+
+                        <TouchableOpacity
+                            onPress={login}
+                            style={[
+                                estilos.buttonContainer,
+                                Platform.OS === 'web' && {
+                                    backgroundColor: '#FF9C11',
+                                    padding: 14,
+                                    borderRadius: 8,
+                                    width: '100%',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    marginBottom: 20,
+                                    ':hover': {
+                                        backgroundColor: '#FFB443',
+                                        transform: 'translateY(-1px)'
+                                    }
+                                }
+                            ]}
+                        >
+                            <Text style={[
+                                estilos.buttonStyle,
+                                Platform.OS === 'web' && {
+                                    fontSize: 16,
+                                    fontWeight: 'bold'
+                                }
+                            ]}>Entrar</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('SignUp')}
+                            style={Platform.OS === 'web' && {
+                                alignItems: 'center',
+                                marginTop: 10
+                            }}
+                        >
+                            <Text style={[
+                                estilos.signupText,
+                                Platform.OS === 'web' && {
+                                    color: '#5AB1BB',
+                                    textDecoration: 'underline',
+                                    cursor: 'pointer'
+                                }
+                            ]}>
+                                Não possui uma conta?
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
+            </ScrollView>
         </View>
     );
 }
