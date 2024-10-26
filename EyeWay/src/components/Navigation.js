@@ -8,7 +8,7 @@ import Statistics from '../pages/Statistics';
 import Login from '../pages/Login';
 import { useStore } from '../store/globalStore';
 import SignUp from '../pages/SignUp';
-
+import CamerasList from '../pages/CamerasList'
 
 const Stack = createStackNavigator();
 
@@ -29,8 +29,9 @@ export default function Navigation() {
         <Stack.Screen name="Live" component={Live} options={{ headerShown: false }} />
         <Stack.Screen name="Infractions" component={Infractions} options={{ headerShown: false }} />
         <Stack.Screen name="Statistics" component={Statistics} options={{ headerShown: false }} />
+        <Stack.Screen name='CamerasList' component={CamerasList} options={{ headerShown: false }} />
         </>
-
+        
     )}
       </Stack.Navigator>
     </NavigationContainer>
