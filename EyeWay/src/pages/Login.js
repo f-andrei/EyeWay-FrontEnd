@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    Image,
-    StyleSheet,
-    TextInput,
+import { 
+    View, 
+    Text, 
+    TouchableOpacity, 
+    Image, 
+    StyleSheet, 
+    TextInput, 
     Platform,
-    Dimensions,
+    Dimensions, 
     ScrollView
 } from 'react-native';
 import { useStore } from '../store/globalStore';
@@ -19,19 +19,19 @@ export default function Login({ navigation }) {
 
     const { setAuthenticated } = useStore();
     const api_url = Platform.OS === 'android' ? "http://10.0.2.2:3000/login" : "http://localhost:3000/login";
-
+    
     async function login() {
-        try {
+        try{
             console.log(email, senha);
             const { data } = await axios.post(api_url, { email, senha });
             if (data.token?.length) {
                 setAuthenticated(true);
-                window.localStorage.setItem("token", data.token)
+                window.localStorage.setItem("token",data.token)
             }
-            else {
+            else{
                 alert("Erro ao logar");
             }
-        } catch (err) {
+        }catch(err){
             console.log("Erro ao logar");
         }
     }
@@ -49,8 +49,8 @@ export default function Login({ navigation }) {
             }
         ]}>
             <ScrollView contentContainerStyle={[
-                styles.scrollContent,
-                isWeb && styles.webScrollContent
+                estilos.scrollContent,
+                Platform.OS === 'web' && estilos.webScrollContent
             ]}>
                 <View style={[
                     estilos.card,
@@ -68,7 +68,7 @@ export default function Login({ navigation }) {
                             source={require('../assets/LogoComNomeCompletoEyeWay.png')}
                             style={[
                                 estilos.logo,
-                                Platform.OS === 'web' && {
+                                Platform.OS === 'web' && { 
                                     width: 200,
                                     height: 80,
                                     marginBottom: 20
@@ -76,7 +76,7 @@ export default function Login({ navigation }) {
                             ]}
                         />
                     </View>
-
+    
                     <Text style={[
                         estilos.textColor,
                         Platform.OS === 'web' && {
@@ -87,7 +87,7 @@ export default function Login({ navigation }) {
                     ]}>
                         Entre na sua conta
                     </Text>
-
+    
                     <View style={{ width: '100%' }}>
                         <Text style={[
                             estilos.textInput,
@@ -96,7 +96,7 @@ export default function Login({ navigation }) {
                                 marginBottom: 8
                             }
                         ]}>Email:</Text>
-                        <TextInput
+                        <TextInput 
                             onChangeText={setEmail}
                             placeholder='user@email.com'
                             style={[
@@ -117,7 +117,7 @@ export default function Login({ navigation }) {
                             autoCapitalize="none"
                             keyboardType="email-address"
                         />
-
+    
                         <Text style={[
                             estilos.textInput,
                             Platform.OS === 'web' && {
@@ -146,9 +146,9 @@ export default function Login({ navigation }) {
                             secureTextEntry
                             autoCapitalize="none"
                         />
-
-                        <TouchableOpacity
-                            onPress={login}
+    
+                        <TouchableOpacity 
+                            onPress={login} 
                             style={[
                                 estilos.buttonContainer,
                                 Platform.OS === 'web' && {
@@ -174,10 +174,10 @@ export default function Login({ navigation }) {
                                 }
                             ]}>Entrar</Text>
                         </TouchableOpacity>
-
-                        <TouchableOpacity
+    
+                        <TouchableOpacity 
                             onPress={() => navigation.navigate('SignUp')}
-                            style={Platform.OS === 'web' && {
+                            style={Platform.OS === 'web' && { 
                                 alignItems: 'center',
                                 marginTop: 10
                             }}
@@ -198,7 +198,7 @@ export default function Login({ navigation }) {
             </ScrollView>
         </View>
     );
-}
+}    
 
 const estilos = StyleSheet.create({
     container: {
