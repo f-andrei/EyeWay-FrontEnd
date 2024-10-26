@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 import axios from 'axios';
 
 export default function Home({ navigation }) {
-  const [url, setUrl] = useState();
+  const [url, setUrl] = useState("");
   const [hlsLive, setHlsLive] = useState(false);
   const platform_url = Platform.OS === 'android' ? "http://10.0.2.2:5000/run-inference" : "http://localhost:5000/run-inference";
   const status_url = Platform.OS === 'android' ? "http://10.0.2.2:5000/stream-status" : "http://localhost:5000/stream-status";
@@ -32,30 +32,38 @@ export default function Home({ navigation }) {
 
   return (
     <View style={estilos.container}>
-      <View style={estilos.containerLogo}>
-        <Image
-          source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-          style={estilos.logo}
+      <View style={estilos.contentContainer}>
+        <View style={estilos.containerLogo}>
+          <Image
+            source={require('../assets/LogoComNomeCompletoEyeWay.png')}
+            style={estilos.logo}
+          />
+        </View>
+
+        <View style={estilos.containerDescricao}>
+          <Text style={estilos.textoDescricao}>
+            Envie o link do vídeo (ao vivo ou gravado) para processamento.
+            O sistema detectará possíveis infrações e gerará alertas e estatísticas detalhadas para acompanhamento.
+          </Text>
+        </View>
+
+        <View style={estilos.containerInputUrl}>
+          <Text style={estilos.Url}>Envie aqui a URL do vídeo ⭣</Text>
+          <Ionicons name="link-outline" size={24} color="#C26015" style={estilos.iconeUrl} />
+        </View>
+
+        <TextInput 
+          style={estilos.textoBotaoInputUrl} 
+          placeholder='www.youtube.com/seuvideo' 
+          placeholderTextColor="#A9A9A9" 
+          onChangeText={setUrl} 
+          value={url} 
         />
+        
+        <TouchableOpacity style={estilos.botaoEnviar} onPress={uploadVideo}>
+          <Text style={estilos.textoBotaoEnviar}>Enviar</Text>
+        </TouchableOpacity>
       </View>
-
-      <View style={estilos.containerDescricao}>
-        <Text style={estilos.textoDescricao}>
-          Envie o link do vídeo (ao vivo ou gravado) para processamento.
-          O sistema detectará possíveis infrações e gerará alertas e estatísticas detalhadas para acompanhamento.
-        </Text>
-      </View>
-
-      <View style={estilos.containerInputUrl}>
-        <Text style={estilos.Url}>Envie aqui a URL do vídeo ⭣</Text>
-        <Ionicons name="link-outline" size={24} color="#C26015" style={estilos.iconeUrl} />
-      </View>
-      <View>
-        <TextInput style={estilos.textoBotaoInputUrl} placeholder='www.youtube.com/seuvideo' placeholderTextColor="#A9A9A9" onChangeText={setUrl} value={url} />
-      </View>
-      <TouchableOpacity style={estilos.botaoEnviar} onPress={uploadVideo}>
-        <Text style={estilos.textoBotaoEnviar}>Enviar</Text>
-      </TouchableOpacity>
 
       <Navbar navigation={navigation} />
     </View>
@@ -66,93 +74,92 @@ const estilos = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#3E3C3C',
+    paddingTop: Platform.OS === 'web' ? 110 : 20,
+    paddingBottom: Platform.OS === 'web' ? 110 : 20,
+    paddingHorizontal: Platform.OS === 'web' ? 10 : 0,
+  },
+  contentContainer: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 40,
+    justifyContent: 'flex-start',
+    marginBottom: Platform.OS === 'web' ? 0 : 20,
   },
   containerLogo: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: Platform.OS === 'web' ? 40 : 15,
     width: '100%',
   },
   logo: {
-    width: '80%',
-    height: 120,
+    width: Platform.OS === 'web' ? '30%' : '70%',
+    height: Platform.OS === 'web' ? 120 : 100,
     resizeMode: 'contain',
   },
   containerDescricao: {
     backgroundColor: '#3E3C3C',
-    padding: 20,
+    padding: Platform.OS === 'web' ? 20 : 15,
     borderRadius: 10,
-    marginBottom: 30,
-    width: '90%',
+    marginBottom: Platform.OS === 'web' ? 20 : 15,
+    width: Platform.OS === 'web' ? '70%' : '90%',
+    maxWidth: 800,
   },
   textoDescricao: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: Platform.OS === 'web' ? 20 : 16,
     textAlign: 'center',
     lineHeight: 24,
   },
   containerInputUrl: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    justifyContent: 'center',
+    marginBottom: Platform.OS === 'web' ? 10 : 5,
+    width: Platform.OS === 'web' ? '80%' : '95%',
+    maxWidth: 1000,
   },
   Url: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: Platform.OS === 'web' ? 20 : 18,
     fontWeight: 'bold',
-    marginRight: 10,
+    textAlign: 'center',
   },
   iconeUrl: {
     marginLeft: 5,
   },
-  botaoInputUrl: {
-    backgroundColor: '#114354',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    width: '90%',
-    marginBottom: 40,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
   textoBotaoInputUrl: {
     backgroundColor: '#114354',
     color: '#FFFFFF',
-    paddingVertical: 15,
-    paddingHorizontal: 15,
+    paddingVertical: Platform.OS === 'web' ? 10 : 10,
+    paddingHorizontal: Platform.OS === 'web' ? 20 : 20,
     borderRadius: 5,
-    width: '100%',
-    marginBottom: 40,
-    fontSize: 14,
+    flex: Platform.OS === 'web' ? 1 : undefined,
+    fontSize: Platform.OS === 'web' ? 16 : 14,
     fontWeight: 'bold',
+    textAlign: 'center',
+    width: Platform.OS === 'web' ? '45%' : '90%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+    marginBottom: Platform.OS === 'web' ? 15 : 15,
+    height: Platform.OS === 'web' ? undefined : 40,
   },
   botaoEnviar: {
     backgroundColor: '#114354',
-    paddingVertical: 15,
+    paddingVertical: Platform.OS === 'web' ? 15 : 5,
     borderRadius: 5,
-    width: '90%',
     alignItems: 'center',
+    width: Platform.OS === 'web' ? '25%' : '40%',
+    alignSelf: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
-    marginBottom: 140,
   },
   textoBotaoEnviar: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: Platform.OS === 'web' ? 18 : 16,
     fontWeight: 'bold',
   },
 });
