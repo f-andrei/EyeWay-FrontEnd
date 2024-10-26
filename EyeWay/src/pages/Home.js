@@ -30,6 +30,11 @@ export default function Home({ navigation }) {
       }
     }, 1000);
   }
+  
+  function CamerasListPage(){
+    navigation.navigate('CamerasList');
+    console.log("Lista de cameras!");
+  }
 
   return (
     <View style={styles.container}>
@@ -84,6 +89,16 @@ export default function Home({ navigation }) {
             onPress={uploadVideo}
           >
             <Text style={styles.textoBotaoEnviar}>Enviar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[
+              styles.botaoEnviar,
+              isWeb && styles.webBotaoEnviar
+            ]} 
+            onPress={CamerasListPage}
+          >
+            <Text style={styles.textoBotaoEnviar}>Lista de câmeras</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -191,6 +206,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+    marginBottom: 5,
   },
   webBotaoEnviar: {
     width: '25%',
