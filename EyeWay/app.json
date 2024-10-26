@@ -1,10 +1,22 @@
 {
   "expo": {
-    "name": "EyeWay",
-    "slug": "EyeWay",
-    "version": "1.0.0",
     "plugins": [
-      "expo-video"
-    ]
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "android": {
+      "permissions": ["INTERNET"]
+    },
+    "ios": {
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    }
   }
 }
