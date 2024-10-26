@@ -1,12 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from 'react-native';
 import { useStore } from '../store/globalStore';
+import axios from 'axios';
 
 export default function Login({ navigation }) {
-    const { setAuthenticated  } = useStore();
+    const [email, setEmail] = useState("");
+    const [senha, setSenha] = useState("");
 
-    function login(){
-        setAuthenticated(true);
+    const { setAuthenticated } = useStore();
+
+    async function login() {
+
+        try{
+            console.log(email, senha);
+            const { data } = await axios.post("http://localhost:3000/login", { email, senha });
+            if (data.token?.length) {
+                setAuthenticated(true);
+                window.localStorage.setItem("token",data.token)
+            }
+            else{
+                alert("Erro ao logar");
+            }
+        }catch(err){
+            console.log("Erro ao logar");
+        }
+    
     }
 
     return (
@@ -23,20 +41,21 @@ export default function Login({ navigation }) {
                     Entre na sua conta
                 </Text>
             </View>
-            
+
             <View style={estilos.card}>
                 <Text style={estilos.textInput}>Email:</Text>
-                <TextInput 
-                    placeholder='user@email.com' 
-                    style={estilos.input} 
-                    placeholderTextColor="#b0b0b0" 
+                <TextInput onChangeText={setEmail}
+                    placeholder='user@email.com'
+                    style={estilos.input}
+                    placeholderTextColor="#b0b0b0"
                 />
 
                 <Text style={estilos.textInput}>Senha:</Text>
-                <TextInput 
-                    placeholder='Senha' 
-                    style={estilos.input} 
-                    placeholderTextColor="#b0b0b0" 
+                <TextInput
+                    onChangeText={setSenha}
+                    placeholder='Senha'
+                    style={estilos.input}
+                    placeholderTextColor="#b0b0b0"
                     secureTextEntry
                 />
 
@@ -67,7 +86,7 @@ const estilos = StyleSheet.create({
     },
     logo: {
         width: '80%',
-        height: 120,  
+        height: 120,
         resizeMode: 'contain',
     },
     containerTexto: {

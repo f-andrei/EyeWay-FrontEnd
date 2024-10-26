@@ -1,13 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from 'react-native';
 import { useStore } from '../store/globalStore';
+import axios from 'axios';
 
 export default function SignUp({ navigation }) {
+    const [email, setEmail] = useState("");
+    const [senha, setSenha] = useState("");
+    const [nome,setNome] = useState("");
     const { setAuthenticated } = useStore();
-
-    function cadastrar(){
-        setAuthenticated(true);
+    
+    async function SignUp() {
+        try{
+            const { data } = await axios.post("http://localhost:3000/users", { nome, email, senha });
+            navigation.navigate('Login')
+        }catch(err){
+            console.log(err);
+            alert("Erro ao fazer cadastro ;-;");
+        }
+    
     }
+
+
 
     return (
         <View style={estilos.container}>
@@ -26,28 +39,31 @@ export default function SignUp({ navigation }) {
 
             <View style={estilos.card}>
                 <Text style={estilos.textInput}>Nome:</Text>
-                <TextInput 
-                    placeholder='João' 
-                    style={estilos.input} 
-                    placeholderTextColor="#b0b0b0" 
+                <TextInput
+                    onChangeText={setNome}
+                    placeholder='João'
+                    style={estilos.input}
+                    placeholderTextColor="#b0b0b0"
                 />
 
                 <Text style={estilos.textInput}>Email:</Text>
-                <TextInput 
-                    placeholder='user@email.com' 
-                    style={estilos.input} 
-                    placeholderTextColor="#b0b0b0" 
+                <TextInput
+                    onChangeText={setEmail}
+                    placeholder='user@email.com'
+                    style={estilos.input}
+                    placeholderTextColor="#b0b0b0"
                 />
 
                 <Text style={estilos.textInput}>Senha:</Text>
-                <TextInput 
-                    placeholder='senha1Forte@12' 
-                    style={estilos.input} 
-                    placeholderTextColor="#b0b0b0" 
+                <TextInput
+                    onChangeText={setSenha}
+                    placeholder='senha1Forte@12'
+                    style={estilos.input}
+                    placeholderTextColor="#b0b0b0"
                     secureTextEntry
                 />
 
-                <TouchableOpacity onPress={cadastrar} style={estilos.buttonContainer}>
+                <TouchableOpacity onPress={SignUp} style={estilos.buttonContainer}>
                     <Text style={estilos.buttonStyle}>Cadastrar</Text>
                 </TouchableOpacity>
             </View>
@@ -70,7 +86,7 @@ const estilos = StyleSheet.create({
     },
     logo: {
         width: '80%',
-        height: 120,  
+        height: 120,
         resizeMode: 'contain',
     },
     containerTexto: {
