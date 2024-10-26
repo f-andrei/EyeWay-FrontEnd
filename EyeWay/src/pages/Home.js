@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, SafeAreaView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/Navbar';
 import axios from 'axios';
@@ -9,6 +9,7 @@ export default function Home({ navigation }) {
   const [hlsLive, setHlsLive] = useState(false);
   const platform_url = Platform.OS === 'android' ? "http://10.0.2.2:5000/run-inference" : "http://localhost:5000/run-inference";
   const status_url = Platform.OS === 'android' ? "http://10.0.2.2:5000/stream-status" : "http://localhost:5000/stream-status";
+  const isWeb = Platform.OS === 'web';
 
   async function uploadVideo() {
     const payload = {
@@ -31,67 +32,95 @@ export default function Home({ navigation }) {
   }
 
   return (
-    <View style={estilos.container}>
-      <View style={estilos.contentContainer}>
-        <View style={estilos.containerLogo}>
-          <Image
-            source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-            style={estilos.logo}
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={[
+          styles.contentWrapper,
+          isWeb && styles.webContentWrapper
+        ]}>
+          {!isWeb && (
+            <View style={styles.containerLogo}>
+              <Image 
+                source={require('../assets/LogoComNomeCompletoEyeWay.png')} 
+                style={styles.logo} 
+              />
+            </View>
+          )}
+
+          <View style={[
+            styles.containerDescricao,
+            isWeb && { width: '70%', marginTop: 40 }
+          ]}>
+            <Text style={styles.textoDescricao}>
+              Envie o link do vídeo (ao vivo ou gravado) para processamento.
+              O sistema detectará possíveis infrações e gerará alertas e estatísticas detalhadas para acompanhamento.
+            </Text>
+          </View>
+
+          <View style={[
+            styles.containerInputUrl,
+            isWeb && { width: '80%' }
+          ]}>
+            <Text style={styles.Url}>Envie aqui a URL do vídeo ⭣</Text>
+            <Ionicons name="link-outline" size={24} color="#C26015" style={styles.iconeUrl} />
+          </View>
+
+          <TextInput 
+            style={[
+              styles.textoBotaoInputUrl,
+              isWeb && styles.webTextoBotaoInputUrl
+            ]}
+            placeholder='www.youtube.com/seuvideo' 
+            placeholderTextColor="#A9A9A9" 
+            onChangeText={setUrl} 
+            value={url} 
           />
+          
+          <TouchableOpacity 
+            style={[
+              styles.botaoEnviar,
+              isWeb && styles.webBotaoEnviar
+            ]} 
+            onPress={uploadVideo}
+          >
+            <Text style={styles.textoBotaoEnviar}>Enviar</Text>
+          </TouchableOpacity>
         </View>
-
-        <View style={estilos.containerDescricao}>
-          <Text style={estilos.textoDescricao}>
-            Envie o link do vídeo (ao vivo ou gravado) para processamento.
-            O sistema detectará possíveis infrações e gerará alertas e estatísticas detalhadas para acompanhamento.
-          </Text>
-        </View>
-
-        <View style={estilos.containerInputUrl}>
-          <Text style={estilos.Url}>Envie aqui a URL do vídeo ⭣</Text>
-          <Ionicons name="link-outline" size={24} color="#C26015" style={estilos.iconeUrl} />
-        </View>
-
-        <TextInput 
-          style={estilos.textoBotaoInputUrl} 
-          placeholder='www.youtube.com/seuvideo' 
-          placeholderTextColor="#A9A9A9" 
-          onChangeText={setUrl} 
-          value={url} 
-        />
-        
-        <TouchableOpacity style={estilos.botaoEnviar} onPress={uploadVideo}>
-          <Text style={estilos.textoBotaoEnviar}>Enviar</Text>
-        </TouchableOpacity>
-      </View>
-
+      </ScrollView>
       <Navbar navigation={navigation} />
     </View>
   );
 }
 
-const estilos = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#3E3C3C',
-    paddingTop: Platform.OS === 'web' ? 110 : 20,
-    paddingBottom: Platform.OS === 'web' ? 110 : 20,
-    paddingHorizontal: Platform.OS === 'web' ? 10 : 0,
+    justifyContent: 'space-between',
   },
-  contentContainer: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    marginBottom: Platform.OS === 'web' ? 0 : 20,
+    paddingBottom: 70,
+  },
+  contentWrapper: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  webContentWrapper: {
+    maxWidth: 800,
+    width: '99%',
+    paddingHorizontal: 0,
   },
   containerLogo: {
     alignItems: 'center',
-    marginBottom: Platform.OS === 'web' ? 40 : 15,
+    marginTop: 40,
+    marginBottom: 30,
     width: '100%',
   },
   logo: {
-    width: Platform.OS === 'web' ? '30%' : '70%',
-    height: Platform.OS === 'web' ? 120 : 100,
+    width: '80%',
+    height: 120,
     resizeMode: 'contain',
   },
   containerDescricao: {
@@ -99,7 +128,7 @@ const estilos = StyleSheet.create({
     padding: Platform.OS === 'web' ? 20 : 15,
     borderRadius: 10,
     marginBottom: Platform.OS === 'web' ? 20 : 15,
-    width: Platform.OS === 'web' ? '70%' : '90%',
+    width: '90%',
     maxWidth: 800,
   },
   textoDescricao: {
@@ -113,7 +142,7 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Platform.OS === 'web' ? 10 : 5,
-    width: Platform.OS === 'web' ? '80%' : '95%',
+    width: '95%',
     maxWidth: 1000,
   },
   Url: {
@@ -128,34 +157,44 @@ const estilos = StyleSheet.create({
   textoBotaoInputUrl: {
     backgroundColor: '#114354',
     color: '#FFFFFF',
-    paddingVertical: Platform.OS === 'web' ? 10 : 10,
-    paddingHorizontal: Platform.OS === 'web' ? 20 : 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 5,
-    flex: Platform.OS === 'web' ? 1 : undefined,
-    fontSize: Platform.OS === 'web' ? 16 : 14,
+    fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
-    width: Platform.OS === 'web' ? '45%' : '90%',
+    width: '90%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
-    marginBottom: Platform.OS === 'web' ? 15 : 15,
-    height: Platform.OS === 'web' ? undefined : 40,
+    marginBottom: 15,
+    height: 40,
+  },
+  webTextoBotaoInputUrl: {
+    width: '45%',
+    flex: 1,
+    fontSize: 16,
+    height: 30,
+    paddingVertical: 5,
   },
   botaoEnviar: {
     backgroundColor: '#114354',
-    paddingVertical: Platform.OS === 'web' ? 15 : 5,
+    paddingVertical: 5,
     borderRadius: 5,
     alignItems: 'center',
-    width: Platform.OS === 'web' ? '25%' : '40%',
+    width: '40%',
     alignSelf: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+  },
+  webBotaoEnviar: {
+    width: '25%',
+    paddingVertical: 15,
   },
   textoBotaoEnviar: {
     color: '#FFFFFF',
