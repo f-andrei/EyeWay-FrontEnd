@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, Dimensions, ScrollView, Platform, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
@@ -44,11 +44,44 @@ export default function Live({ navigation }) {
   const platform_url = Platform.OS === 'android' ? "http://10.0.2.2:5000/stop-inference" : "http://localhost:5000/stop-inference";
 
   async function stopTransmission() {
+    const isWeb = Platform.OS === 'web';
+  
     try {
-      await axios.post(platform_url);
-      navigation.navigate('Home');
+      const response = await axios.post(platform_url);
+      
+      if (isWeb) {
+        window.alert('Transmissão interrompida com sucesso!');
+      } else {
+        Alert.alert(
+          'Sucesso',
+          'Transmissão interrompida com sucesso!',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Home')
+            }
+          ]
+        );
+      }
+  
+      if (isWeb) {
+        navigation.navigate('Home');
+      }
+  
     } catch (error) {
       console.error('Error stopping transmission:', error);
+      
+      if (isWeb) {
+        window.alert('Erro ao interromper transmissão: ' + 
+          (error.response?.data?.message || error.message || 'Erro desconhecido'));
+      } else {
+        Alert.alert(
+          'Erro',
+          'Erro ao interromper transmissão: ' + 
+          (error.response?.data?.message || error.message || 'Erro desconhecido'),
+          [{ text: 'OK' }]
+        );
+      }
     }
   }
 
