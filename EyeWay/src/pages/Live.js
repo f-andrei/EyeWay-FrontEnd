@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions, ScrollView, Platform } from 'react-native';
+import { View, Text, Image, StyleSheet, Dimensions, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import Navbar from '../components/Navbar';
 import AdaptiveVideoPlayer from '../components/AdaptiveVideoPlayer';
 
@@ -24,8 +26,8 @@ export default function Live({ navigation }) {
 
   const getVideoDimensions = () => {
     if (isWeb) {
-      const maxWidth = Math.min(dimensions.width * 0.99, 800); 
-      const maxHeight = dimensions.height * 0.85;
+      const maxWidth = Math.min(dimensions.width * 0.99, 750); 
+      const maxHeight = dimensions.height * 0.55; 
       const widthBasedHeight = maxWidth * 9 / 16;
       
       return {
@@ -38,6 +40,21 @@ export default function Live({ navigation }) {
       height: (dimensions.width * 0.9) * 9 / 16
     };
   };
+
+  const platform_url = Platform.OS === 'android' ? "http://10.0.2.2:5000/stop-inference" : "http://localhost:5000/stop-inference";
+
+  async function stopTransmission() {
+    try {
+      await axios.post(platform_url);
+      navigation.navigate('Home');
+    } catch (error) {
+      console.error('Error stopping transmission:', error);
+    }
+  }
+
+  function goToCamerasList() {
+    navigation.navigate('CamerasList');
+  }
 
   const { width: videoWidth, height: videoHeight } = getVideoDimensions();
   const stream_url = "http://172.26.148.170:8085/stream/stream.m3u8";
@@ -100,6 +117,31 @@ export default function Live({ navigation }) {
             isWeb && styles.webInfoTexto
           ]}>Local: Rua Estados Unidos, 10</Text>
         </View>
+
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.botao,
+              isWeb && styles.webBotao,
+              styles.stopButton
+            ]} 
+            onPress={stopTransmission}
+          >
+            <Ionicons name="stop-circle-outline" size={24} color="#FFFFFF" style={styles.buttonIcon} />
+            <Text style={styles.textoBotao}>Parar transmissão</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[
+              styles.botao,
+              isWeb && styles.webBotao
+            ]} 
+            onPress={goToCamerasList}
+          >
+            <Ionicons name="list-outline" size={24} color="#FFFFFF" style={styles.buttonIcon} />
+            <Text style={styles.textoBotao}>Lista de câmeras</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
       <Navbar navigation={navigation} />
     </View>
@@ -118,8 +160,8 @@ const styles = StyleSheet.create({
     paddingBottom: 70,
   },
   webScrollContent: {
-    paddingTop: 10,
-    paddingBottom: 30,
+    paddingTop: 5,
+    paddingBottom: 20,
   },
   containerLogo: {
     alignItems: 'center',
@@ -166,29 +208,68 @@ const styles = StyleSheet.create({
   webContainerVideo: {
     borderRadius: 12,
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   containerInfo: {
-    backgroundColor: '#3E3C3C',
-    padding: 20,
+    backgroundColor: '#2A2A2A',
+    padding: 15,
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: 3,  
     width: '90%',
     alignItems: 'center',
   },
   webContainerInfo: {
-    padding: 20,
+    padding: 15,
     borderRadius: 12,
     backgroundColor: '#333',
     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+    marginBottom: 3,
   },
   infoTexto: {
     color: '#FFFFFF',
     fontSize: 16,
-    marginBottom: 10,
+    marginBottom: 3, 
   },
   webInfoTexto: {
     fontSize: 12,
-    marginBottom: 4,
+    marginBottom: 2,  
+  },
+  buttonsContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 0,  
+  },
+  botao: {
+    backgroundColor: '#114354',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    width: '40%',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+    marginBottom: 4,  
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  webBotao: {
+    width: '25%',
+    paddingVertical: 15,
+    marginBottom: 10,
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  stopButton: {
+    backgroundColor: '#8B0000',
+  },
+  textoBotao: {
+    color: '#FFFFFF',
+    fontSize: Platform.OS === 'web' ? 18 : 16,
+    fontWeight: 'bold',
   },
 });
