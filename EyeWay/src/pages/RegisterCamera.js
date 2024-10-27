@@ -9,6 +9,7 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -209,22 +210,32 @@ export default function CameraRegistration({ navigation }) {
   };
 
   const handleSave = async () => {
+    const isWeb = Platform.OS === 'web';
+    
     if (!cameraInfo.name || !cameraInfo.location || !cameraInfo.address || !cameraInfo.type) {
-      Alert.alert(
-        "Campos obrigatórios",
-        "Por favor, preencha todos os campos obrigatórios (nome, local, endereço e tipo)."
-      );
+      if (isWeb) {
+        window.alert("Por favor, preencha todos os campos obrigatórios (nome, local, endereço e tipo).");
+      } else {
+        Alert.alert(
+          "Campos obrigatórios",
+          "Por favor, preencha todos os campos obrigatórios (nome, local, endereço e tipo)."
+        );
+      }
       return;
     }
-
+  
     if (!uploadedImage || !imageSize.width || !imageSize.height || !cameraInfo.imageData) {
-      Alert.alert(
-        "Imagem necessária",
-        "Por favor, faça upload de uma imagem antes de salvar."
-      );
+      if (isWeb) {
+        window.alert("Por favor, faça upload de uma imagem antes de salvar.");
+      } else {
+        Alert.alert(
+          "Imagem necessária",
+          "Por favor, faça upload de uma imagem antes de salvar."
+        );
+      }
       return;
     }
-
+  
     const typeMapping = {
       'YouTube Video': 'youtube_video',
       'YouTube Stream': 'youtube_stream',
@@ -268,40 +279,60 @@ export default function CameraRegistration({ navigation }) {
   
       const data = await response.json();
       
-      Alert.alert(
-        "Sucesso",
-        "Câmera cadastrada com sucesso!",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setCameraInfo({
-                name: '',
-                location: '',
-                address: '',
-                type: '',
-                imageData: null
-              });
-              setLinePairs([]);
-              setRois([]);
-              setUploadedImage(null);
-              setImageLoaded(false);
-              setImageSize({ width: 0, height: 0 });
-              
-              navigation.navigate('CameraList');
+      if (isWeb) {
+        window.alert("Câmera cadastrada com sucesso!");
+        setCameraInfo({
+          name: '',
+          location: '',
+          address: '',
+          type: '',
+          imageData: null
+        });
+        setLinePairs([]);
+        setRois([]);
+        setUploadedImage(null);
+        setImageLoaded(false);
+        setImageSize({ width: 0, height: 0 });
+        navigation.navigate('CamerasList');
+      } else {
+        Alert.alert(
+          "Sucesso",
+          "Câmera cadastrada com sucesso!",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                setCameraInfo({
+                  name: '',
+                  location: '',
+                  address: '',
+                  type: '',
+                  imageData: null
+                });
+                setLinePairs([]);
+                setRois([]);
+                setUploadedImage(null);
+                setImageLoaded(false);
+                setImageSize({ width: 0, height: 0 });
+                navigation.navigate('CamerasList');
+              }
             }
-          }
-        ]
-      );
+          ]
+        );
+      }
   
     } catch (error) {
-      Alert.alert(
-        "Erro",
-        error.message || "Ocorreu um erro ao salvar a câmera. Tente novamente.",
-        [{ text: "OK" }]
-      );
+      if (isWeb) {
+        window.alert(error.message || "Ocorreu um erro ao salvar a câmera. Tente novamente.");
+      } else {
+        Alert.alert(
+          "Erro",
+          error.message || "Ocorreu um erro ao salvar a câmera. Tente novamente.",
+          [{ text: "OK" }]
+        );
+      }
     }
-  }
+  };
 
   const handleEndDrawing = () => {
     if (drawing) {
@@ -596,7 +627,7 @@ export default function CameraRegistration({ navigation }) {
             onPress={handleSave}
           >
             <Ionicons name="save-outline" size={24} color="#FFFFFF" style={styles.buttonIcon} />
-            <Text style={styles.saveButtonText}>Save Configuration</Text>
+            <Text style={styles.saveButtonText}>Salvar configuração</Text>
           </TouchableOpacity>
           </View>
         </ScrollView>
