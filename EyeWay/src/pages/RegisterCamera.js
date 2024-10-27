@@ -6,29 +6,39 @@ import {
   StyleSheet,
   Platform,
   TouchableOpacity,
+  ScrollView,
   Image,
   Dimensions,
-  ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import Navbar from '../components/Navbar';
 
 export default function CameraRegistration({ navigation }) {
   const [cameraInfo, setCameraInfo] = useState({
-    id: '',
+    name: '',
     location: '',
-    description: '',
+    address: '',
+    type: '',
+    imageData: null  
   });
   
   const [mode, setMode] = useState('LINE');
-  const [lines, setLines] = useState([]);
+  const [linePairs, setLinePairs] = useState([]);
+  const [currentLinePair, setCurrentLinePair] = useState({ crossing: null, direction: null });
   const [rois, setRois] = useState([]);
   const [drawing, setDrawing] = useState(false);
   const [currentShape, setCurrentShape] = useState([]);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const canvasRef = useRef(null);
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
   const isWeb = Platform.OS === 'web';
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const imageRef = useRef(null);
+  const API_URL = Platform.OS === 'android' 
+  ? "http://10.0.2.2:3000" 
+  : "http://localhost:3000"
 
   useEffect(() => {
     if (isWeb) {
@@ -44,24 +54,118 @@ export default function CameraRegistration({ navigation }) {
     }
   }, []);
 
+  const canvasToImageCoordinates = (point) => {
+    if (!canvasRef.current || !imageSize.width || !imageSize.height) return point;
+    
+    const canvas = canvasRef.current;
+    const scaleX = imageSize.width / canvas.width;
+    const scaleY = imageSize.height / canvas.height;
+    
+    return {
+      x: Math.round(point.x * scaleX),
+      y: Math.round(point.y * scaleY)
+    };
+  };
+
+  const imageToCanvasCoordinates = (point) => {
+    if (!canvasRef.current || !imageSize.width || !imageSize.height) return point;
+    
+    const canvas = canvasRef.current;
+    const scaleX = canvas.width / imageSize.width;
+    const scaleY = canvas.height / imageSize.height;
+    
+    return {
+      x: Math.round(point.x * scaleX),
+      y: Math.round(point.y * scaleY)
+    };
+  };
+
+  const getBase64FromUri = async (uri) => {
+    if (Platform.OS === 'web') {
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.error('Error converting image to base64:', error);
+        throw error;
+      }
+    } else {
+
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.error('Error converting image to base64:', error);
+        throw error;
+      }
+    }
+  };
+
   useEffect(() => {
     if (canvasRef.current && isWeb && imageLoaded) {
       const ctx = canvasRef.current.getContext('2d');
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       
-      lines.forEach(line => {
+
+      linePairs.forEach(pair => {
+        const crossingStart = imageToCanvasCoordinates(pair.crossing[0]);
+        const crossingEnd = imageToCanvasCoordinates(pair.crossing[1]);
+        const directionStart = imageToCanvasCoordinates(pair.direction[0]);
+        const directionEnd = imageToCanvasCoordinates(pair.direction[1]);
+
         ctx.beginPath();
-        ctx.moveTo(line[0].x, line[0].y);
-        ctx.lineTo(line[1].x, line[1].y);
+        ctx.moveTo(crossingStart.x, crossingStart.y);
+        ctx.lineTo(crossingEnd.x, crossingEnd.y);
         ctx.strokeStyle = '#FF0000';
         ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(directionStart.x, directionStart.y);
+        ctx.lineTo(directionEnd.x, directionEnd.y);
+        ctx.strokeStyle = '#FFFF00';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        const angle = Math.atan2(
+          directionEnd.y - directionStart.y,
+          directionEnd.x - directionStart.x
+        );
+        const arrowLength = 20;
+        const arrowAngle = Math.PI / 6;
+
+        ctx.beginPath();
+        ctx.moveTo(directionEnd.x, directionEnd.y);
+        ctx.lineTo(
+          directionEnd.x - arrowLength * Math.cos(angle - arrowAngle),
+          directionEnd.y - arrowLength * Math.sin(angle - arrowAngle)
+        );
+        ctx.moveTo(directionEnd.x, directionEnd.y);
+        ctx.lineTo(
+          directionEnd.x - arrowLength * Math.cos(angle + arrowAngle),
+          directionEnd.y - arrowLength * Math.sin(angle + arrowAngle)
+        );
+        ctx.strokeStyle = '#FFFF00';
         ctx.stroke();
       });
       
       rois.forEach(roi => {
+        const canvasRoi = roi.map(point => imageToCanvasCoordinates(point));
         ctx.beginPath();
-        ctx.moveTo(roi[0].x, roi[0].y);
-        roi.forEach(point => ctx.lineTo(point.x, point.y));
+        ctx.moveTo(canvasRoi[0].x, canvasRoi[0].y);
+        canvasRoi.forEach(point => ctx.lineTo(point.x, point.y));
         ctx.closePath();
         ctx.strokeStyle = '#00FF00';
         ctx.lineWidth = 3;
@@ -71,16 +175,240 @@ export default function CameraRegistration({ navigation }) {
       });
       
       if (currentShape.length > 0) {
+        const canvasShape = currentShape.map(point => imageToCanvasCoordinates(point));
         ctx.beginPath();
-        ctx.moveTo(currentShape[0].x, currentShape[0].y);
-        currentShape.forEach(point => ctx.lineTo(point.x, point.y));
+        ctx.moveTo(canvasShape[0].x, canvasShape[0].y);
+        canvasShape.forEach(point => ctx.lineTo(point.x, point.y));
         if (mode === 'ROI') ctx.closePath();
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 3;
         ctx.stroke();
       }
     }
-  }, [lines, rois, currentShape, mode, imageLoaded]);
+  }, [linePairs, currentLinePair, rois, currentShape, mode, imageLoaded]);
+  const handleStartDrawing = (event) => {
+    if (!drawing && uploadedImage) {
+      const canvasPoint = getPointFromEvent(event);
+      const imagePoint = canvasToImageCoordinates(canvasPoint);
+      setCurrentShape([imagePoint]);
+      setDrawing(true);
+    }
+  };
+
+  const handleDrawing = (event) => {
+    if (drawing) {
+      const canvasPoint = getPointFromEvent(event);
+      const imagePoint = canvasToImageCoordinates(canvasPoint);
+      
+      if (mode === 'LINE') {
+        setCurrentShape([currentShape[0], imagePoint]);
+      } else if (mode === 'ROI') {
+        setCurrentShape([...currentShape, imagePoint]);
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    if (!cameraInfo.name || !cameraInfo.location || !cameraInfo.address || !cameraInfo.type) {
+      Alert.alert(
+        "Campos obrigatórios",
+        "Por favor, preencha todos os campos obrigatórios (nome, local, endereço e tipo)."
+      );
+      return;
+    }
+
+    if (!uploadedImage || !imageSize.width || !imageSize.height || !cameraInfo.imageData) {
+      Alert.alert(
+        "Imagem necessária",
+        "Por favor, faça upload de uma imagem antes de salvar."
+      );
+      return;
+    }
+
+    const typeMapping = {
+      'YouTube Video': 'youtube_video',
+      'YouTube Stream': 'youtube_stream',
+      'IP Camera': 'ip_camera'
+    };
+  
+    try {
+      const response = await fetch(`${API_URL}/cameras`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: cameraInfo.name,
+          location: cameraInfo.location,
+          address: cameraInfo.address,
+          type: typeMapping[cameraInfo.type],
+          imageSize: {
+            width: imageSize.width,
+            height: imageSize.height
+          },
+          imageData: cameraInfo.imageData,
+          linePairs: linePairs.map(pair => ({
+            crossing: [
+              { x: pair.crossing[0].x, y: pair.crossing[0].y },
+              { x: pair.crossing[1].x, y: pair.crossing[1].y }
+            ],
+            direction: [
+              { x: pair.direction[0].x, y: pair.direction[0].y },
+              { x: pair.direction[1].x, y: pair.direction[1].y }
+            ]
+          })),
+          rois: rois
+        })
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao salvar a câmera');
+      }
+  
+      const data = await response.json();
+      
+      Alert.alert(
+        "Sucesso",
+        "Câmera cadastrada com sucesso!",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setCameraInfo({
+                name: '',
+                location: '',
+                address: '',
+                type: '',
+                imageData: null
+              });
+              setLinePairs([]);
+              setRois([]);
+              setUploadedImage(null);
+              setImageLoaded(false);
+              setImageSize({ width: 0, height: 0 });
+              
+              navigation.navigate('CameraList');
+            }
+          }
+        ]
+      );
+  
+    } catch (error) {
+      Alert.alert(
+        "Erro",
+        error.message || "Ocorreu um erro ao salvar a câmera. Tente novamente.",
+        [{ text: "OK" }]
+      );
+    }
+  }
+
+  const handleEndDrawing = () => {
+    if (drawing) {
+      if (mode === 'LINE' && currentShape.length === 2) {
+        if (!currentLinePair.crossing) {
+          setCurrentLinePair({ ...currentLinePair, crossing: currentShape });
+        } else {
+          setLinePairs([...linePairs, {
+            crossing: currentLinePair.crossing,
+            direction: currentShape
+          }]);
+          setCurrentLinePair({ crossing: null, direction: null });
+        }
+      } else if (mode === 'ROI' && currentShape.length >= 3) {
+        setRois([...rois, currentShape]);
+      }
+      setCurrentShape([]);
+      setDrawing(false);
+    }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      alert('Sorry, we need camera roll permissions to make this work!');
+      return;
+    }
+  
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 1,
+    });
+  
+    if (!result.canceled) {
+      try {
+        const base64Image = await getBase64FromUri(result.assets[0].uri);
+        
+        setUploadedImage(result.assets[0].uri); 
+        setImageLoaded(false);
+        
+        setCameraInfo(prev => ({
+          ...prev,
+          imageData: base64Image
+        }));
+        
+        if (Platform.OS === 'web') {
+          const img = document.createElement('img');
+          img.onload = () => {
+            setImageSize({
+              width: img.naturalWidth,
+              height: img.naturalHeight
+            });
+            setImageLoaded(true);
+          };
+          img.src = result.assets[0].uri;
+        } else {
+          Image.getSize(result.assets[0].uri, (width, height) => {
+            setImageSize({ width, height });
+            setImageLoaded(true);
+          }, (error) => {
+            console.error('Error getting image size:', error);
+            setImageLoaded(true);
+          });
+        }
+      } catch (error) {
+        Alert.alert(
+          "Erro",
+          "Não foi possível processar a imagem. Por favor, tente novamente.",
+          [{ text: "OK" }]
+        );
+      }
+    }
+  };
+
+  const getPointFromEvent = (event) => {
+    if (!canvasRef.current) return { x: 0, y: 0 };
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+  };
+
+  const handleUndo = () => {
+    if (mode === 'LINE') {
+      if (currentLinePair.crossing) {
+        setCurrentLinePair({ crossing: null, direction: null });
+      } else if (linePairs.length > 0) {
+        setLinePairs(linePairs.slice(0, -1));
+      }
+    } else if (mode === 'ROI' && rois.length > 0) {
+      setRois(rois.slice(0, -1));
+    }
+  };
+
+  const handleReset = () => {
+    setLinePairs([]);
+    setCurrentLinePair({ crossing: null, direction: null });
+    setRois([]);
+    setCurrentShape([]);
+    setDrawing(false);
+  };
 
   const getCanvasDimensions = () => {
     if (isWeb) {
@@ -94,236 +422,189 @@ export default function CameraRegistration({ navigation }) {
     };
   };
 
-  const handleStartDrawing = (event) => {
-    if (!drawing) {
-      const point = getPointFromEvent(event);
-      setCurrentShape([point]);
-      setDrawing(true);
-    }
-  };
-
-  const handleDrawing = (event) => {
-    if (drawing) {
-      const point = getPointFromEvent(event);
-      if (mode === 'LINE') {
-        setCurrentShape([currentShape[0], point]);
-      } else if (mode === 'ROI') {
-        setCurrentShape([...currentShape, point]);
-      }
-    }
-  };
-
-  const handleEndDrawing = () => {
-    if (drawing) {
-      if (mode === 'LINE' && currentShape.length === 2) {
-        setLines([...lines, currentShape]);
-      } else if (mode === 'ROI' && currentShape.length >= 3) {
-        setRois([...rois, currentShape]);
-      }
-      setCurrentShape([]);
-      setDrawing(false);
-    }
-  };
-
-  const getPointFromEvent = (event) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
-    };
-  };
-
-  const handleUndo = () => {
-    if (mode === 'LINE' && lines.length > 0) {
-      setLines(lines.slice(0, -1));
-    } else if (mode === 'ROI' && rois.length > 0) {
-      setRois(rois.slice(0, -1));
-    }
-  };
-
-  const handleReset = () => {
-    setLines([]);
-    setRois([]);
-    setCurrentShape([]);
-    setDrawing(false);
-  };
-
-  const renderCanvas = () => {
-    if (!isWeb) return null;
-
+  const renderImageSection = () => {
     const { width, height } = getCanvasDimensions();
-    const containerStyle = {
-      position: 'relative',
-      width,
-      height,
-      marginBottom: 20,
-      border: '2px solid #666',
-      borderRadius: 8,
-      overflow: 'hidden',
-    };
 
-    return (
-      <div style={containerStyle}>
-        {imageError ? (
-          <div style={{
-            width: '100%',
-            height: '100%',
-            backgroundColor: '#2A2A2A',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#FFFFFF',
-          }}>
-            <Text>No camera feed available</Text>
-          </div>
-        ) : (
-          <img
-            src="https://i.imgur.com/0h8Ned9.jpeg" 
-            alt="Camera View"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              backgroundColor: '#2A2A2A',
-            }}
-            onLoad={() => {
-              setImageLoaded(true);
-              setImageError(false);
-            }}
-            onError={() => {
-              console.error('Error loading image');
-              setImageError(true);
-              setImageLoaded(true);  
-            }}
-          />
-        )}
-        <canvas
-          ref={canvasRef}
-          width={width}
-          height={height}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            cursor: mode === 'SELECT' ? 'pointer' : 'crosshair',
-          }}
-          onMouseDown={handleStartDrawing}
-          onMouseMove={handleDrawing}
-          onMouseUp={handleEndDrawing}
-          onMouseLeave={handleEndDrawing}
-        />
-      </div>
-    );
+    if (isWeb) {
+      return (
+        <View style={[styles.imageContainer, { width, height }]}>
+          {uploadedImage ? (
+            <>
+              <Image
+                source={{ uri: uploadedImage }}
+                style={styles.image}
+                onLoad={() => setImageLoaded(true)}
+              />
+              <canvas
+                ref={canvasRef}
+                width={width}
+                height={height}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  cursor: 'crosshair',
+                }}
+                onMouseDown={handleStartDrawing}
+                onMouseMove={handleDrawing}
+                onMouseUp={handleEndDrawing}
+                onMouseLeave={handleEndDrawing}
+              />
+            </>
+          ) : (
+            <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+              <Ionicons name="cloud-upload-outline" size={40} color="#FFFFFF" />
+              <Text style={styles.uploadText}>Clique para enviar uma imagem de fundo</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    } else {
+      return (
+        <View style={[styles.imageContainer, { width, height }]}>
+          <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+            {uploadedImage ? (
+              <Image source={{ uri: uploadedImage }} style={styles.image} />
+            ) : (
+              <>
+                <Ionicons name="cloud-upload-outline" size={40} color="#FFFFFF" />
+                <Text style={styles.uploadText}>Tap to upload image</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      );
+    }
   };
 
-  const renderToolbar = () => (
-    <View style={styles.toolbar}>
-      <TouchableOpacity
-        style={[styles.toolButton, mode === 'LINE' && styles.activeToolButton]}
-        onPress={() => setMode('LINE')}
-      >
-        <Text style={styles.toolButtonText}>Linha</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.toolButton, mode === 'ROI' && styles.activeToolButton]}
-        onPress={() => setMode('ROI')}
-      >
-        <Text style={styles.toolButtonText}>ROI</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.toolButton, mode === 'SELECT' && styles.activeToolButton]}
-        onPress={() => setMode('SELECT')}
-      >
-        <Text style={styles.toolButtonText}>Selecionar</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.toolButton}
-        onPress={handleUndo}
-      >
-        <Text style={styles.toolButtonText}>Desfazer</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.toolButton}
-        onPress={handleReset}
-      >
-        <Text style={styles.toolButtonText}>Limpar</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderDrawingInfo = () => (
-    <View style={styles.infoContainer}>
-      <Text style={styles.infoText}>
-        {mode === 'LINE' ? 
-          'Clique e arraste para desenhar uma linha de cruzamento' :
-          mode === 'ROI' ? 
-          'Clique para adicionar pontos ao ROI, termine clicando próximo ao ponto inicial' :
-          'Selecione uma forma para editar'}
-      </Text>
-      <Text style={styles.infoText}>
-        Linhas: {lines.length} | ROIs: {rois.length}
-      </Text>
-    </View>
-  );
+  const getInfoText = () => {
+    if (mode === 'LINE') {
+      if (!currentLinePair.crossing) {
+        return 'Desenhe a linha de cruzamento (deve ser perpendicular à linha de direção)';
+      }
+      return 'Desenhe a linha de direção (deve ser paralela à linha de cruzamento)';
+    }
+    return 'Desenhe a região de interesse (clique para adicionar pontos e feche a forma)';
+  };
 
   return (
     <View style={[styles.container, isWeb && styles.webContainer]}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        style={isWeb && { height: '100vh' }}
-      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          style={isWeb ? { height: 'calc(100vh - 60px)' } : { flex: 1 }} 
+        >
         <View style={styles.form}>
-          <Text style={styles.title}>Registrar Câmera</Text>
-          
+          <View style={styles.headerContainer}>
+            <Ionicons name="videocam-outline" size={32} color="#C26015" />
+            <Text style={styles.title}>Cadastro de câmera</Text>
+          </View>
+          <TouchableOpacity 
+          style={styles.helpButton}
+          onPress={() => navigation.navigate('HelpGuide')} 
+        >
+          <Ionicons name="help-circle-outline" size={24} color="#FFFFFF" />
+          <Text style={styles.helpButtonText}>Ajuda</Text>
+        </TouchableOpacity>
+
           <TextInput
             style={styles.input}
-            placeholder="ID da Câmera"
+            placeholder="Nome da câmera"
             placeholderTextColor="#999"
-            value={cameraInfo.id}
-            onChangeText={(text) => setCameraInfo({ ...cameraInfo, id: text })}
+            value={cameraInfo.name}
+            onChangeText={(text) => setCameraInfo({ ...cameraInfo, name: text })}
           />
-          
+
           <TextInput
             style={styles.input}
-            placeholder="Localização"
+            placeholder="Local"
             placeholderTextColor="#999"
             value={cameraInfo.location}
             onChangeText={(text) => setCameraInfo({ ...cameraInfo, location: text })}
           />
-          
+
           <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Descrição"
+            style={styles.input}
+            placeholder="Endereço (IP ou URL)"
             placeholderTextColor="#999"
-            multiline
-            numberOfLines={4}
-            value={cameraInfo.description}
-            onChangeText={(text) => setCameraInfo({ ...cameraInfo, description: text })}
+            value={cameraInfo.address}
+            onChangeText={(text) => setCameraInfo({ ...cameraInfo, address: text })}
           />
 
-          {renderToolbar()}
-          {renderDrawingInfo()}
-          {renderCanvas()}
+          <Text style={styles.typeLabel}>Tipo de midia</Text>
+          <View style={styles.toolbar}>
+            <TouchableOpacity 
+              style={[
+                styles.toolButton,
+                cameraInfo.type === 'YouTube Video' && styles.activeToolButton
+              ]}
+              onPress={() => setCameraInfo({ ...cameraInfo, type: 'YouTube Video' })}
+            >
+              <Text style={styles.toolButtonText}>YouTube Video</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.toolButton,
+                cameraInfo.type === 'YouTube Stream' && styles.activeToolButton
+              ]}
+              onPress={() => setCameraInfo({ ...cameraInfo, type: 'YouTube Stream' })}
+            >
+              <Text style={styles.toolButtonText}>YouTube Stream</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.toolButton,
+                cameraInfo.type === 'IP Camera' && styles.activeToolButton
+              ]}
+              onPress={() => setCameraInfo({ ...cameraInfo, type: 'IP Camera' })}
+            >
+              <Text style={styles.toolButtonText}>IP Camera</Text>
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity 
+          {renderImageSection()}
+
+          <View style={styles.toolbar}>
+            <TouchableOpacity
+              style={[styles.toolButton, mode === 'LINE' && styles.activeToolButton]}
+              onPress={() => setMode('LINE')}
+            >
+              <Text style={styles.toolButtonText}>Linha</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolButton, mode === 'ROI' && styles.activeToolButton]}
+              onPress={() => setMode('ROI')}
+            >
+              <Text style={styles.toolButtonText}>Região de interesse</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.toolButton} onPress={handleUndo}>
+              <Text style={styles.toolButtonText}>Desfazer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.toolButton} onPress={handleReset}>
+              <Text style={styles.toolButtonText}>Limpar</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoText}>{getInfoText()}</Text>
+            <Text style={styles.infoText}>
+              Line Pairs: {linePairs.length} | ROIs: {rois.length}
+            </Text>
+          </View>
+
+          <TouchableOpacity
             style={styles.saveButton}
-            onPress={() => {
-              console.log('Saving camera configuration:', {
-                ...cameraInfo,
-                lines,
-                rois
-              });
-            }}
+            onPress={handleSave}
           >
-            <Text style={styles.saveButtonText}>Salvar Configuração</Text>
+            <Ionicons name="save-outline" size={24} color="#FFFFFF" style={styles.buttonIcon} />
+            <Text style={styles.saveButtonText}>Save Configuration</Text>
           </TouchableOpacity>
-        </View>
-      </ScrollView>
-      <Navbar navigation={navigation} />
-    </View>
-  );
-}
+          </View>
+        </ScrollView>
+        <Navbar navigation={navigation} />
+      </View>
+    );
+  }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -331,25 +612,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#3E3C3C',
   },
   webContainer: {
-    minHeight: '100vh',
+    ...(Platform.OS === 'web' && {
+      height: '100vh',
+      overflow: 'hidden',
+    }),
   },
   scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
     paddingVertical: 20,
     paddingBottom: 90,
+    ...(Platform.OS === 'web' && {
+      width: '100%',
+    }),
   },
   form: {
     width: '90%',
     maxWidth: 800,
     alignItems: 'center',
     padding: 20,
+    ...(Platform.OS === 'web' && {
+      marginBottom: 60,  
+    }),
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 30,
+    gap: 10,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 20,
   },
   input: {
     width: '100%',
@@ -360,9 +655,34 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
+  typeLabel: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginBottom: 10,
+    alignSelf: 'center',
+  },
+  imageContainer: {
+    backgroundColor: '#2A2A2A',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  uploadButton: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginTop: 10,
   },
   toolbar: {
     flexDirection: 'row',
@@ -404,12 +724,30 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    gap: 8,
   },
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  helpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2A2A2A',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 20,
+    gap: 8,
+  },
+  helpButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
   },
 });
