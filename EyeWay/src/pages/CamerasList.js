@@ -28,7 +28,6 @@ export default function Home({ navigation }) {
     ? "http://10.0.2.2:5000" 
     : "http://localhost:5000";
 
-  // Fetch cameras when component mounts
   useEffect(() => {
     fetchCameras();
   }, []);
@@ -52,44 +51,72 @@ export default function Home({ navigation }) {
   };
 
   const handleDelete = async (cameraName) => {
-    Alert.alert(
-      "Confirmar exclusão",
-      `Deseja realmente excluir a câmera "${cameraName}"?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Excluir",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await axios.delete(`${API_URL}/cameras/${cameraName}`);
-              Alert.alert("Sucesso", "Câmera excluída com sucesso!");
-              fetchCameras(); // Refresh the list
-            } catch (err) {
-              Alert.alert(
-                "Erro",
-                "Não foi possível excluir a câmera.",
-                [{ text: "OK" }]
-              );
+    const isWeb = Platform.OS === 'web';
+    
+    if (isWeb) {
+      const confirmed = window.confirm(`Deseja realmente excluir a câmera "${cameraName}"?`);
+      if (confirmed) {
+        try {
+          const encodedCameraName = encodeURIComponent(cameraName);
+          const response = await axios.delete(`${API_URL}/cameras/${encodedCameraName}`);
+          
+          if (response.status === 200) {
+            window.alert('Câmera excluída com sucesso!');
+            fetchCameras();
+          }
+        } catch (err) {
+          console.error('Delete error:', err);
+          window.alert('Não foi possível excluir a câmera. ' + 
+            (err.response?.data?.message || err.message || 'Erro desconhecido'));
+        }
+      }
+    } else {
+      Alert.alert(
+        "Confirmar exclusão",
+        `Deseja realmente excluir a câmera "${cameraName}"?`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Excluir",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const encodedCameraName = encodeURIComponent(cameraName);
+                const response = await axios.delete(`${API_URL}/cameras/${encodedCameraName}`);
+                
+                if (response.status === 200) {
+                  Alert.alert("Sucesso", "Câmera excluída com sucesso!");
+                  fetchCameras(); 
+                }
+              } catch (err) {
+                console.error('Delete error:', err);
+                Alert.alert(
+                  "Erro",
+                  `Não foi possível excluir a câmera. ${
+                    err.response?.data?.message || 
+                    err.message || 
+                    'Verifique a conexão com o servidor.'
+                  }`,
+                  [{ text: "OK" }]
+                );
+              }
             }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handlePlayCamera = async (camera) => {
     try {
-      setProcessingCamera(camera.name); // Show loading state for this camera
+      setProcessingCamera(camera.name); 
   
-      // Send inference request
       const response = await axios.post(`${INFERENCE_URL}/run-inference`, {
         camera_name: camera.name,
         source: camera.address,
         input_type: camera.type
       });
   
-      // Check stream status
       const checkStatus = async () => {
         try {
           const statusResponse = await axios.get(`${INFERENCE_URL}/stream-status`);
@@ -97,7 +124,6 @@ export default function Home({ navigation }) {
             setProcessingCamera(null);
             navigation.navigate('Live', { camera: camera });
           } else {
-            // Check again after 1 second
             setTimeout(checkStatus, 1000);
           }
         } catch (error) {
@@ -110,8 +136,6 @@ export default function Home({ navigation }) {
           setProcessingCamera(null);
         }
       };
-  
-      // Start checking status
       checkStatus();
   
     } catch (error) {
@@ -174,7 +198,7 @@ export default function Home({ navigation }) {
               <Text style={styles.emptyStateText}>Nenhuma câmera cadastrada</Text>
               <TouchableOpacity
                 style={styles.addButton}
-                onPress={() => navigation.navigate('CameraRegistration')}
+                onPress={() => navigation.navigate('RegisterCamera')}
               >
                 <Text style={styles.addButtonText}>Adicionar Câmera</Text>
               </TouchableOpacity>
@@ -212,10 +236,10 @@ export default function Home({ navigation }) {
                     style={[
                       styles.BotaoReproduzir, 
                       isWeb && styles.webBotaoEnviar,
-                      processingCamera === camera.name && styles.buttonProcessing // Add disabled style
+                      processingCamera === camera.name && styles.buttonProcessing 
                     ]}
                     onPress={() => handlePlayCamera(camera)}
-                    disabled={processingCamera === camera.name} // Disable while processing
+                    disabled={processingCamera === camera.name} 
                   >
                     {processingCamera === camera.name ? (
                       <View style={styles.buttonContent}>
