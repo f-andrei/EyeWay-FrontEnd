@@ -25,8 +25,9 @@ export default function CameraRegistration({ navigation }) {
   });
   
   const [mode, setMode] = useState('LINE');
+  const [lineType, setLineType] = useState('Contagem');
   const [linePairs, setLinePairs] = useState([]);
-  const [currentLinePair, setCurrentLinePair] = useState({ crossing: null, direction: null });
+  const [currentLinePair, setCurrentLinePair] = useState({ crossing: null, direction: null, type: null });
   const [rois, setRois] = useState([]);
   const [drawing, setDrawing] = useState(false);
   const [currentShape, setCurrentShape] = useState([]);
@@ -189,6 +190,17 @@ export default function CameraRegistration({ navigation }) {
   }, [linePairs, currentLinePair, rois, currentShape, mode, imageLoaded]);
   const handleStartDrawing = (event) => {
     if (!drawing && uploadedImage) {
+      if (mode === 'LINE' && !lineType) {
+        if (isWeb) {
+          window.alert("Por favor, selecione o tipo de linha antes de desenhar.");
+        } else {
+          Alert.alert(
+            "Tipo de linha necessário",
+            "Por favor, selecione o tipo de linha antes de desenhar."
+          );
+        }
+        return;
+      }
       const canvasPoint = getPointFromEvent(event);
       const imagePoint = canvasToImageCoordinates(canvasPoint);
       setCurrentShape([imagePoint]);
@@ -266,7 +278,8 @@ export default function CameraRegistration({ navigation }) {
             direction: [
               { x: pair.direction[0].x, y: pair.direction[0].y },
               { x: pair.direction[1].x, y: pair.direction[1].y }
-            ]
+            ],
+            type: pair.type 
           })),
           rois: rois
         })
@@ -338,11 +351,12 @@ export default function CameraRegistration({ navigation }) {
     if (drawing) {
       if (mode === 'LINE' && currentShape.length === 2) {
         if (!currentLinePair.crossing) {
-          setCurrentLinePair({ ...currentLinePair, crossing: currentShape });
+          setCurrentLinePair({ ...currentLinePair, crossing: currentShape, type: lineType });
         } else {
           setLinePairs([...linePairs, {
             crossing: currentLinePair.crossing,
-            direction: currentShape
+            direction: currentShape,
+            type: currentLinePair.type
           }]);
           setCurrentLinePair({ crossing: null, direction: null });
         }
@@ -424,7 +438,7 @@ export default function CameraRegistration({ navigation }) {
   const handleUndo = () => {
     if (mode === 'LINE') {
       if (currentLinePair.crossing) {
-        setCurrentLinePair({ crossing: null, direction: null });
+        setCurrentLinePair({ crossing: null, direction: null, type: null });
       } else if (linePairs.length > 0) {
         setLinePairs(linePairs.slice(0, -1));
       }
@@ -435,7 +449,7 @@ export default function CameraRegistration({ navigation }) {
 
   const handleReset = () => {
     setLinePairs([]);
-    setCurrentLinePair({ crossing: null, direction: null });
+    setCurrentLinePair({ crossing: null, direction: null, type: null });
     setRois([]);
     setCurrentShape([]);
     setDrawing(false);
@@ -530,12 +544,12 @@ export default function CameraRegistration({ navigation }) {
             <Text style={styles.title}>Cadastro de câmera</Text>
           </View>
           <TouchableOpacity 
-          style={styles.helpButton}
-          onPress={() => navigation.navigate('HelpGuide')} 
-        >
-          <Ionicons name="help-circle-outline" size={24} color="#FFFFFF" />
-          <Text style={styles.helpButtonText}>Ajuda</Text>
-        </TouchableOpacity>
+            style={styles.helpButton}
+            onPress={() => navigation.navigate('HelpGuide')} 
+          >
+            <Ionicons name="help-circle-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.helpButtonText}>Ajuda</Text>
+          </TouchableOpacity>
 
           <TextInput
             style={styles.input}
@@ -615,10 +629,38 @@ export default function CameraRegistration({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {mode === 'LINE' && (
+            <>
+              <Text style={styles.typeLabel}>
+                {!lineType ? 'Selecione o tipo de ação que a linha irá realizar.' : 'Tipo de linha selecionado: ' + lineType}
+              </Text>
+              <View style={styles.toolbar}>
+                <TouchableOpacity
+                  style={[
+                    styles.toolButton,
+                    lineType === 'Contagem' && styles.activeToolButton
+                  ]}
+                  onPress={() => setLineType('Contagem')}
+                >
+                  <Text style={styles.toolButtonText}>Contagem</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toolButton,
+                    lineType === 'Conversão proibida' && styles.activeToolButton
+                  ]}
+                  onPress={() => setLineType('Conversão proibida')}
+                >
+                  <Text style={styles.toolButtonText}>Conversão proibida</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
           <View style={styles.infoContainer}>
             <Text style={styles.infoText}>{getInfoText()}</Text>
             <Text style={styles.infoText}>
-              Line Pairs: {linePairs.length} | ROIs: {rois.length}
+              Pares de linhas criados: {linePairs.length} | Regiões de interesse criadas: {rois.length}
             </Text>
           </View>
 
@@ -633,9 +675,8 @@ export default function CameraRegistration({ navigation }) {
         </ScrollView>
         <Navbar navigation={navigation} />
       </View>
-    );
-  }
-
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
