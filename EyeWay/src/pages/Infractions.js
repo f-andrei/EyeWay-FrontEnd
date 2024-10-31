@@ -169,7 +169,7 @@ export default function Infractions({ navigation }) {
                         styles.infractionDetail,
                         styles.webInfoTexto
                       ]}>
-                        Câmera ID: {infraction.camera_id}
+                        Nome da câmera: {infraction.camera_name || 'Não especificado'}
                       </Text>
                       <Text style={[
                         styles.infractionDetail,
@@ -182,6 +182,12 @@ export default function Infractions({ navigation }) {
                         styles.webInfoTexto
                       ]}>
                         Data: {formatDate(infraction.timestamp)}
+                      </Text>
+                      <Text style={[
+                        styles.infractionDetail,
+                        styles.webInfoTexto
+                      ]}>
+                        Local: {infraction.camera_location || 'Não especificado'}
                       </Text>
                     </View>
                   </View>
