@@ -110,8 +110,9 @@ export default function Home({ navigation }) {
   const handlePlayCamera = async (camera) => {
     try {
       setProcessingCamera(camera.name); 
-  
+
       const response = await axios.post(`${INFERENCE_URL}/run-inference`, {
+        camera_id: camera.id,
         camera_name: camera.name,
         source: camera.address,
         input_type: camera.type

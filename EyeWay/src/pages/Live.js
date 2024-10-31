@@ -5,10 +5,10 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import AdaptiveVideoPlayer from '../components/AdaptiveVideoPlayer';
 
-export default function Live({ navigation }) {
+export default function Live({ route, navigation }) {
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
   const isWeb = Platform.OS === 'web';
-  
+  const { camera = { name: 'N/A', location: 'N/A' } } = route.params || {};
   useEffect(() => {
     if (isWeb) {
       const handleResize = () => {
@@ -141,14 +141,12 @@ export default function Live({ navigation }) {
           isWeb && styles.webContainerInfo,
           { maxWidth: videoWidth }
         ]}>
-          <Text style={[
-            styles.infoTexto,
-            isWeb && styles.webInfoTexto
-          ]}>ID da Câmera: 123456</Text>
-          <Text style={[
-            styles.infoTexto,
-            isWeb && styles.webInfoTexto
-          ]}>Local: Rua Estados Unidos, 10</Text>
+        <Text style={[styles.infoTexto, isWeb && styles.webInfoTexto]}>
+          Nome da câmera: {camera.name}
+        </Text>
+        <Text style={[styles.infoTexto, isWeb && styles.webInfoTexto]}>
+          Local: {camera.location}
+        </Text>
         </View>
 
         <View style={styles.buttonsContainer}>
