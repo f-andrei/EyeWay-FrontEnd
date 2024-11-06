@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/Navbar';
+import Perfil from './Perfil';
 
 export default function Home({ navigation }) {
   const isWeb = Platform.OS === 'web';
@@ -81,6 +82,16 @@ export default function Home({ navigation }) {
             >
               <Ionicons name="list-outline" size={24} color="#FFFFFF" style={styles.buttonIcon} />
               <Text style={styles.textoBotaoAcao}>Lista de câmeras</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.botaoAcao,
+                isWeb && styles.webBotaoAcao
+              ]} 
+              onPress={() => navigation.navigate('Perfil', { userId: 1 })}
+            >
+              <Ionicons name="person-circle-outline" size={24} color="#FFFFFF" style={styles.buttonIcon} />
+              <Text style={styles.textoBotaoAcao}>Meu Perfil</Text>
             </TouchableOpacity>
           </View>
         </View>
