@@ -7,7 +7,8 @@ import {
     StyleSheet, 
     TextInput, 
     Platform,
-    Dimensions 
+    Dimensions, 
+    Alert
 } from 'react-native';
 import { useStore } from '../store/globalStore';
 import axios from 'axios';
@@ -17,6 +18,8 @@ export default function Login({ navigation }) {
     const [senha, setSenha] = useState("");
     const globalStore = useStore();
     const { setAuthenticated } = useStore();
+
+    const isWeb = Platform.OS === 'web';
 
     const api_url = Platform.OS === 'android' ? "http://10.0.2.2:3000/login" : "http://localhost:3000/login";
     
@@ -34,6 +37,15 @@ export default function Login({ navigation }) {
             }
         }catch(err){
             console.log("Erro ao logar");
+            if(err.response.data.message){
+                if (isWeb) {
+                    window.alert(err.response.data.message);
+                  } else {
+                    Alert.alert(
+                    err.response.data.message
+                    );
+                  }
+            }
         }
     }
 
