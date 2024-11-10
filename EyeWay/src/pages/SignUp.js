@@ -18,13 +18,22 @@ export default function SignUp({ navigation }) {
     const { setAuthenticated } = useStore();
     const api_url = Platform.OS === 'android' ? "http://10.0.2.2:3000/users" : "http://localhost:3000/users";
     
+    const isWeb = Platform.OS === 'web';
+
     async function SignUp() {
         try {
             const { data } = await axios.post(api_url, { nome, email, senha });
             navigation.navigate('Login')
         } catch(err) {
-            console.log(err);
-            alert("Erro ao fazer cadastro ;-;");
+            if(err.response.data.message){
+                if (isWeb) {
+                    window.alert(err.response.data.message);
+                  } else {
+                    Alert.alert(
+                    err.response.data.message
+                    );
+                  }
+            }
         }
     }
 
