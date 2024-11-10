@@ -3,22 +3,25 @@ import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity, 
 import axios from 'axios';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Navbar from '../components/Navbar';
+import { useStore } from '../store/globalStore';
+
 
 export default Perfil = ({ navigation, route }) => {
     const isWeb = Platform.OS === 'web';
 
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
-
+    
     const API_URL = Platform.OS === 'android'
         ? "http://10.0.2.2:3000"
         : "http://localhost:3000";
 
-    const loggedUserId = route.params?.userId;
-
+    const globalStore = useStore();
+    
     useEffect(() => {
-        if (loggedUserId) {
-            axios.get(`${API_URL}/users/${loggedUserId}`)
+        console.log(globalStore.user_id)
+        if (globalStore.user_id) {
+            axios.get(`${API_URL}/users/${globalStore.user_id}`)
                 .then(response => {
                     setUserData(response.data);
                     setLoading(false);
@@ -28,16 +31,25 @@ export default Perfil = ({ navigation, route }) => {
                     setLoading(false);
                 });
         }
-    }, [loggedUserId]);
+    }, [globalStore.user_id]);
 
-    const atualizarPerfil = () => {
-        alert("Atualizar perfil");
+    const atualizarPerfil = async () => {
+        await axios.put(`${API_URL}/users/${globalStore.user_id}`, userData);
+        navigation.navigate('Home')
     };
 
-    const deletarConta = () => {
-        alert("Deletar conta");
+    const deletarConta = async () => {
+        await axios.delete(`${API_URL}/users/${globalStore.user_id}`);
+        globalStore.setAuthenticated(false)
     };
 
+    const setNome = (name) => {
+        setUserData({...userData,name})
+    }
+
+    const setEmail = (email) => {
+        setUserData({...userData,email})
+    }
     if (loading) {
         return <ActivityIndicator size="large" color="#0000ff" />;
     }
@@ -71,16 +83,15 @@ export default Perfil = ({ navigation, route }) => {
                                 style={styles.input}
                                 placeholder="Nome"
                                 placeholderTextColor="#AAA"
+                                value={userData.name}
+                                onChangeText={setNome}
                             />
                             <TextInput
                                 style={styles.input}
                                 placeholder="E-mail"
                                 placeholderTextColor="#AAA"
-                            />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Telefone"
-                                placeholderTextColor="#AAA"
+                                value={userData.email}
+                                onChangeText={setEmail}
                             />
 
                             <TouchableOpacity style={styles.botaoEnviar} onPress={atualizarPerfil}>
