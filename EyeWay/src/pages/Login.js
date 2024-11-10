@@ -28,7 +28,6 @@ export default function Login({ navigation }) {
                 setAuthenticated(true);
                 window.localStorage.setItem("token",data.token);
                 globalStore.setUserId( data.user_id );
-                console.log(globalStore.user_id);
             }
             else{
                 alert("Erro ao logar");
