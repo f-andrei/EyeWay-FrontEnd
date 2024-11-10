@@ -15,17 +15,20 @@ import axios from 'axios';
 export default function Login({ navigation }) {
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
-
+    const globalStore = useStore();
     const { setAuthenticated } = useStore();
+
     const api_url = Platform.OS === 'android' ? "http://10.0.2.2:3000/login" : "http://localhost:3000/login";
     
     async function login() {
         try{
             console.log(email, senha);
             const { data } = await axios.post(api_url, { email, senha });
-            if (data.token?.length) {
+            if (data.token?.length){
                 setAuthenticated(true);
-                window.localStorage.setItem("token",data.token)
+                window.localStorage.setItem("token",data.token);
+                globalStore.setUserId( data.user_id );
+                console.log(globalStore.user_id);
             }
             else{
                 alert("Erro ao logar");
