@@ -88,7 +88,7 @@ export default function Home({ navigation }) {
                 styles.botaoAcao,
                 isWeb && styles.webBotaoAcao
               ]} 
-              onPress={() => navigation.navigate('Perfil', { userId: 1 })}
+              onPress={() => navigation.navigate('Perfil')}
             >
               <Ionicons name="person-circle-outline" size={24} color="#FFFFFF" style={styles.buttonIcon} />
               <Text style={styles.textoBotaoAcao}>Meu Perfil</Text>
