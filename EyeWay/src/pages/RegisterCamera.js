@@ -187,6 +187,7 @@ export default function CameraRegistration({ navigation }) {
         ctx.stroke();
       }
     }
+  
   }, [linePairs, currentLinePair, rois, currentShape, mode, imageLoaded]);
   const handleStartDrawing = (event) => {
     if (!drawing && uploadedImage) {
