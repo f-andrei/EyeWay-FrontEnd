@@ -164,11 +164,11 @@ export default function CameraRegistration({ navigation }) {
       });
       
       rois.forEach(roi => {
-        const canvasRoi = roi.map(point => imageToCanvasCoordinates(point));
+        const canvasRoi = roi.map(point => imageToCanvasCoordinates(point)); //converte os pontos da região para as coordenadas do canvas
         ctx.beginPath();
         ctx.moveTo(canvasRoi[0].x, canvasRoi[0].y);
-        canvasRoi.forEach(point => ctx.lineTo(point.x, point.y));
-        ctx.closePath();
+        canvasRoi.forEach(point => ctx.lineTo(point.x, point.y)); //desenha uma linha até cada ponto da região
+        ctx.closePath(); //fecha o desenho
         ctx.strokeStyle = '#00FF00';
         ctx.lineWidth = 3;
         ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
@@ -176,11 +176,11 @@ export default function CameraRegistration({ navigation }) {
         ctx.stroke();
       });
       
-      if (currentShape.length > 0) {
+      if (currentShape.length > 0) { //verifica se tem algo sendo desenhado
         const canvasShape = currentShape.map(point => imageToCanvasCoordinates(point));
-        ctx.beginPath();
+        ctx.beginPath(); //começa a desenhar a forma no canvas
         ctx.moveTo(canvasShape[0].x, canvasShape[0].y);
-        canvasShape.forEach(point => ctx.lineTo(point.x, point.y));
+        canvasShape.forEach(point => ctx.lineTo(point.x, point.y)); //desenha uma linha até cada ponto da forma
         if (mode === 'ROI') ctx.closePath();
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 3;
@@ -248,13 +248,13 @@ export default function CameraRegistration({ navigation }) {
       return;
     }
   
-    const typeMapping = {
+    const typeMapping = { //mapeamento dos tipos de câmeras
       'YouTube Video': 'youtube_video',
       'YouTube Stream': 'youtube_stream',
       'IP Camera': 'ip_camera'
     };
   
-    try {
+    try { //envia a requisição POST para salvar os dados da câmera
       const response = await fetch(`${API_URL}/cameras`, {
         method: 'POST',
         headers: {
@@ -269,9 +269,9 @@ export default function CameraRegistration({ navigation }) {
             width: imageSize.width,
             height: imageSize.height
           },
-          imageData: cameraInfo.imageData,
+          imageData: cameraInfo.imageData, //dados da imagem (base64)
           linePairs: linePairs.map(pair => ({
-            crossing: [
+            crossing: [ //ponto de interseção de linhas
               { x: pair.crossing[0].x, y: pair.crossing[0].y },
               { x: pair.crossing[1].x, y: pair.crossing[1].y }
             ],
@@ -360,7 +360,7 @@ export default function CameraRegistration({ navigation }) {
           }]);
           setCurrentLinePair({ crossing: null, direction: null });
         }
-      } else if (mode === 'ROI' && currentShape.length >= 3) {
+      } else if (mode === 'ROI' && currentShape.length >= 3) {  //ROI com 3 ou mais pontos, salva a área
         setRois([...rois, currentShape]);
       }
       setCurrentShape([]);
@@ -424,12 +424,13 @@ export default function CameraRegistration({ navigation }) {
     }
   };
 
-  const getPointFromEvent = (event) => {
+  const getPointFromEvent = (event) => {   //função para pegar a posição do mouse dentro do canvas
     if (!canvasRef.current) return { x: 0, y: 0 };
     
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     return {
+      //calcula a posição X e Y no canvas
       x: event.clientX - rect.left,
       y: event.clientY - rect.top
     };
@@ -438,8 +439,10 @@ export default function CameraRegistration({ navigation }) {
   const handleUndo = () => {
     if (mode === 'LINE') {
       if (currentLinePair.crossing) {
+         //se você está desenhando uma linha de cruzamento, cancela o desenho
         setCurrentLinePair({ crossing: null, direction: null, type: null });
       } else if (linePairs.length > 0) {
+        //caso contrário, remove a última linha desenhada
         setLinePairs(linePairs.slice(0, -1));
       }
     } else if (mode === 'ROI' && rois.length > 0) {
@@ -447,7 +450,7 @@ export default function CameraRegistration({ navigation }) {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = () => { //função para resetar todo o desenho e limpar os dados
     setLinePairs([]);
     setCurrentLinePair({ crossing: null, direction: null, type: null });
     setRois([]);
@@ -455,7 +458,7 @@ export default function CameraRegistration({ navigation }) {
     setDrawing(false);
   };
 
-  const getCanvasDimensions = () => {
+  const getCanvasDimensions = () => { //função para calcular as dimensões do canvas com base na tela
     if (isWeb) {
       const maxWidth = Math.min(dimensions.width * 0.9, 800);
       const maxHeight = maxWidth * 9 / 16;
@@ -522,7 +525,7 @@ export default function CameraRegistration({ navigation }) {
     }
   };
 
-  const getInfoText = () => {
+  const getInfoText = () => { //função que retorna o texto de instrução dependendo do que o usuário deve desenhar
     if (mode === 'LINE') {
       if (!currentLinePair.crossing) {
         return 'Desenhe a linha de cruzamento (deve ser perpendicular à linha de direção)';
@@ -605,10 +608,13 @@ export default function CameraRegistration({ navigation }) {
               <Text style={styles.toolButtonText}>IP Camera</Text>
             </TouchableOpacity>
           </View>
-
+          {/*renderiza a seção da imagem */}
           {renderImageSection()}
 
           <View style={styles.toolbar}>
+            {/* Estes botões são usados para escolher como você quer desenhar ou selecionar: 
+             1º "linha" para desenhar uma linha reta.
+             2º "região de Interesse (ROI)" para marcar uma área específica que você quer destacar. */}
             <TouchableOpacity
               style={[styles.toolButton, mode === 'LINE' && styles.activeToolButton]}
               onPress={() => setMode('LINE')}
@@ -658,6 +664,7 @@ export default function CameraRegistration({ navigation }) {
           )}
 
           <View style={styles.infoContainer}>
+          {/*mostra as informações sobre as linhas e regiões de interesse*/}
             <Text style={styles.infoText}>{getInfoText()}</Text>
             <Text style={styles.infoText}>
               Pares de linhas criados: {linePairs.length} | Regiões de interesse criadas: {rois.length}
@@ -685,8 +692,8 @@ const styles = StyleSheet.create({
   },
   webContainer: {
     ...(Platform.OS === 'web' && {
-      height: '100vh',
-      overflow: 'hidden',
+      height: '100vh', //ocupa toda a altura da tela na versão web
+      overflow: 'hidden', //esconde o que passar dos limites
     }),
   },
   scrollContent: {
@@ -704,14 +711,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     ...(Platform.OS === 'web' && {
-      marginBottom: 60,  
+      marginBottom: 60,  //adiciona espaço extra na web
     }),
   },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 30,
-    gap: 10,
+    gap: 10, //espaço entre os elementos
   },
   title: {
     fontSize: 24,
@@ -738,7 +745,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 20,
-    position: 'relative',
+    position: 'relative',//necessário para sobreposicionar elementos
   },
   image: {
     width: '100%',
