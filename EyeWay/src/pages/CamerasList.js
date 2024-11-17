@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Image, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ScrollView,
   Platform,
   Alert,
-  ActivityIndicator 
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/Navbar';
@@ -20,12 +20,12 @@ export default function Home({ navigation }) {
   const [error, setError] = useState(null);
   const [processingCamera, setProcessingCamera] = useState(null);
   const isWeb = Platform.OS === 'web';
-  const API_URL = Platform.OS === 'android' 
-    ? "http://10.0.2.2:3000" 
+  const API_URL = Platform.OS === 'android'
+    ? "http://10.0.2.2:3000"
     : "http://localhost:3000";
 
-  const INFERENCE_URL = Platform.OS === 'android' 
-    ? "http://10.0.2.2:5000" 
+  const INFERENCE_URL = Platform.OS === 'android'
+    ? "http://10.0.2.2:5000"
     : "http://localhost:5000";
 
   useEffect(() => {
@@ -52,21 +52,21 @@ export default function Home({ navigation }) {
 
   const handleDelete = async (cameraName) => {
     const isWeb = Platform.OS === 'web';
-    
+
     if (isWeb) {
       const confirmed = window.confirm(`Deseja realmente excluir a câmera "${cameraName}"?`);
       if (confirmed) {
         try {
           const encodedCameraName = encodeURIComponent(cameraName);
           const response = await axios.delete(`${API_URL}/cameras/${encodedCameraName}`);
-          
+
           if (response.status === 200) {
             window.alert('Câmera excluída com sucesso!');
             fetchCameras();
           }
         } catch (err) {
           console.error('Delete error:', err);
-          window.alert('Não foi possível excluir a câmera. ' + 
+          window.alert('Não foi possível excluir a câmera. ' +
             (err.response?.data?.message || err.message || 'Erro desconhecido'));
         }
       }
@@ -83,19 +83,18 @@ export default function Home({ navigation }) {
               try {
                 const encodedCameraName = encodeURIComponent(cameraName);
                 const response = await axios.delete(`${API_URL}/cameras/${encodedCameraName}`);
-                
+
                 if (response.status === 200) {
                   Alert.alert("Sucesso", "Câmera excluída com sucesso!");
-                  fetchCameras(); 
+                  fetchCameras();
                 }
               } catch (err) {
                 console.error('Delete error:', err);
                 Alert.alert(
                   "Erro",
-                  `Não foi possível excluir a câmera. ${
-                    err.response?.data?.message || 
-                    err.message || 
-                    'Verifique a conexão com o servidor.'
+                  `Não foi possível excluir a câmera. ${err.response?.data?.message ||
+                  err.message ||
+                  'Verifique a conexão com o servidor.'
                   }`,
                   [{ text: "OK" }]
                 );
@@ -109,7 +108,7 @@ export default function Home({ navigation }) {
 
   const handlePlayCamera = async (camera) => {
     try {
-      setProcessingCamera(camera.name); 
+      setProcessingCamera(camera.name);
 
       const response = await axios.post(`${INFERENCE_URL}/run-inference`, {
         camera_id: camera.id,
@@ -117,7 +116,7 @@ export default function Home({ navigation }) {
         source: camera.address,
         input_type: camera.type
       });
-  
+
       const checkStatus = async () => {
         try {
           const statusResponse = await axios.get(`${INFERENCE_URL}/stream-status`);
@@ -138,7 +137,7 @@ export default function Home({ navigation }) {
         }
       };
       checkStatus();
-  
+
     } catch (error) {
       console.error('Error starting inference:', error);
       Alert.alert(
@@ -170,7 +169,7 @@ export default function Home({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         style={Platform.OS === 'web' ? {
           height: 'calc(100vh - 60px)',
@@ -180,9 +179,9 @@ export default function Home({ navigation }) {
         <View style={[styles.contentWrapper, isWeb && styles.webContentWrapper]}>
           {!isWeb && (
             <View style={styles.containerLogo}>
-              <Image 
-                source={require('../assets/LogoComNomeCompletoEyeWay.png')} 
-                style={styles.logo} 
+              <Image
+                source={require('../assets/LogoComNomeCompletoEyeWay.png')}
+                style={styles.logo}
               />
             </View>
           )}
@@ -227,20 +226,20 @@ export default function Home({ navigation }) {
                 <Text style={styles.cameraLocalizacao}>
                   Local: {camera.location}
                 </Text>
-                
+
                 <Text style={styles.cameraAddress}>
                   URL/IP: {camera.address}
                 </Text>
 
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[
-                      styles.BotaoReproduzir, 
+                      styles.BotaoReproduzir,
                       isWeb && styles.webBotaoEnviar,
-                      processingCamera === camera.name && styles.buttonProcessing 
+                      processingCamera === camera.name && styles.buttonProcessing
                     ]}
                     onPress={() => handlePlayCamera(camera)}
-                    disabled={processingCamera === camera.name} 
+                    disabled={processingCamera === camera.name}
                   >
                     {processingCamera === camera.name ? (
                       <View style={styles.buttonContent}>
@@ -251,8 +250,18 @@ export default function Home({ navigation }) {
                       <Text style={styles.textoBotaoEnviar}>Reproduzir</Text>
                     )}
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
+                    style={[styles.botaoAtualizar, isWeb && styles.webBotaoEnviar]}
+                    onPress={() => navigation.navigate('UpdateCamera', {
+                      camera_id: camera.id
+                    })}
+                  >
+                    
+                    <Text style={styles.textoBotaoEnviar}>Atualizar Camera</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     style={[styles.BotaoExcluir, isWeb && styles.webBotaoEnviar]}
                     onPress={() => handleDelete(camera.name)}
                   >
@@ -382,6 +391,13 @@ const styles = StyleSheet.create({
   },
   BotaoReproduzir: {
     backgroundColor: '#FF9C11',
+    borderRadius: 5,
+    width: '100%',
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  botaoAtualizar: {
+    backgroundColor: '#023047',
     borderRadius: 5,
     width: '100%',
     paddingVertical: 10,
