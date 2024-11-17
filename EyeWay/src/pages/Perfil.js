@@ -93,7 +93,10 @@ export default Perfil = ({ navigation, route }) => {
                                 value={userData.email}
                                 onChangeText={setEmail}
                             />
+                            
+                            <Text style={styles.textoBotao2}>Edite ou reescreva as informações nos campos desejados, Após realizar as alterações, clique no botão "Atualizar Perfil" para salvar as mudanças.
 
+                            </Text>
                             <TouchableOpacity style={styles.botaoEnviar} onPress={atualizarPerfil}>
                                 <View style={styles.buttonContent}>
                                     <Ionicons name="person-add-sharp" size={isWeb ? 28 : 14} color="black" />
@@ -217,6 +220,12 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: Platform.OS === 'web' ? 16 : 14,
         fontWeight: 'bold',
+    },
+    textoBotao2: {
+        color: '#FFFFFF',
+        fontSize: Platform.OS === 'web' ? 16 : 14,
+        fontWeight: 'bold',
+        marginBottom:8,
     },
     label: {
         color: '#FFFFFF',
