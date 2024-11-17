@@ -58,14 +58,14 @@ export default function Live({ route, navigation }) {
           [
             {
               text: 'OK',
-              onPress: () => navigation.navigate('Home')
+              onPress: () => navigation.navigate('CamerasList')
             }
           ]
         );
       }
   
       if (isWeb) {
-        navigation.navigate('Home');
+        navigation.navigate('CamerasList');
       }
   
     } catch (error) {
