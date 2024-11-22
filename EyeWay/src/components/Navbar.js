@@ -148,8 +148,10 @@ const estilos = StyleSheet.create({
     borderRadius: 8,
   },
   navItem: {
-    alignItems: 'center',
-    width: '100%', 
+      alignItems: 'center',
+      justifyContent: 'center', 
+      width: 70, 
+      height: 70, 
   },
   webIconContainer: {
     width: 42,
