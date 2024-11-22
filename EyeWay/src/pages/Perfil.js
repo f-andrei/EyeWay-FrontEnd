@@ -33,23 +33,11 @@ export default Perfil = ({ navigation, route }) => {
         }
     }, [globalStore.user_id]);
 
-    const atualizarPerfil = async () => {
-        await axios.put(`${API_URL}/users/${globalStore.user_id}`, userData);
-        navigation.navigate('Home')
-    };
-
     const deletarConta = async () => {
         await axios.delete(`${API_URL}/users/${globalStore.user_id}`);
         globalStore.setAuthenticated(false)
     };
 
-    const setNome = (name) => {
-        setUserData({...userData,name})
-    }
-
-    const setEmail = (email) => {
-        setUserData({...userData,email})
-    }
     if (loading) {
         return <ActivityIndicator size="large" color="#0000ff" />;
     }
@@ -69,26 +57,26 @@ export default Perfil = ({ navigation, route }) => {
                             />
                         </View>
                     )}
-
+                    
                     <View style={[styles.containerDescricao, isWeb && { width: '70%', marginTop: 40 }]}>
                         <View style={styles.header}>
                             <Ionicons name="person" size={isWeb ? 40 : 25} color="orange" />
                             <Text style={styles.textoDescricao}>Perfil do Usuário</Text>
                         </View>
                     </View>
-
+    
                     {userData ? (
                         <View style={[styles.card, isWeb && styles.webUserCard]}>
-                          <Text style={styles.textoBotao2}>Nome: {userData.name}</Text>
-                          <Text style={styles.textoBotao2}>Email: {userData.email}</Text>
-                            
-                            <TouchableOpacity style={styles.botaoEnviar} onPress={() =>  navigation.navigate("UpdatePerfil")}>
+                            <Text style={styles.textoBotao2}>Nome: {userData.name}</Text>
+                            <Text style={styles.textoBotao2}>Email: {userData.email}</Text>
+    
+                            <TouchableOpacity style={styles.botaoEnviar} onPress={() => navigation.navigate("UpdatePerfil")}>
                                 <View style={styles.buttonContent}>
                                     <Ionicons name="person-add-sharp" size={isWeb ? 28 : 14} color="black" />
                                     <Text style={styles.textoBotao}>Atualizar Perfil</Text>
                                 </View>
                             </TouchableOpacity>
-
+    
                             <TouchableOpacity style={styles.botaoExcluir} onPress={deletarConta}>
                                 <View style={styles.buttonContent}>
                                     <Ionicons name="person-remove" size={isWeb ? 28 : 14} color="black" />
@@ -99,12 +87,13 @@ export default Perfil = ({ navigation, route }) => {
                     ) : (
                         <Text style={styles.label}>Usuário não encontrado</Text>
                     )}
-                    <Navbar navigation={navigation} />
                 </View>
             </ScrollView>
+    
+            <Navbar navigation={navigation} style={Platform.OS === 'web' ? {} : styles.navbarMobile} />
         </View>
     );
-};
+}    
 
 const styles = StyleSheet.create({
     container: {
@@ -120,6 +109,7 @@ const styles = StyleSheet.create({
     contentWrapper: {
         width: '100%',
         alignItems: 'center',
+        paddingTop: 20, 
     },
     webContentWrapper: {
         maxWidth: 800,
