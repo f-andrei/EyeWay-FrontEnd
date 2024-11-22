@@ -18,7 +18,7 @@ export default UpdatePerfil = ({ navigation, route }) => {
     const globalStore = useStore();
     
     useEffect(() => {
-        console.log(globalStore.user_id)
+        console.log(globalStore.user_id);
         if (globalStore.user_id) {
             axios.get(`${API_URL}/users/${globalStore.user_id}`)
                 .then(response => {
@@ -34,16 +34,17 @@ export default UpdatePerfil = ({ navigation, route }) => {
 
     const atualizarPerfil = async () => {
         await axios.put(`${API_URL}/users/${globalStore.user_id}`, userData);
-        navigation.navigate('Home')
+        navigation.navigate('Home');
     };
 
     const setNome = (name) => {
-        setUserData({...userData,name})
-    }
+        setUserData({ ...userData, name });
+    };
 
     const setEmail = (email) => {
-        setUserData({...userData,email})
-    }
+        setUserData({ ...userData, email });
+    };
+
     if (loading) {
         return <ActivityIndicator size="large" color="#0000ff" />;
     }
@@ -88,8 +89,8 @@ export default UpdatePerfil = ({ navigation, route }) => {
                                 onChangeText={setEmail}
                             />
                             
-                            <Text style={styles.textoBotao2}>Edite ou reescreva as informações nos campos desejados, Após realizar as alterações, clique no botão "Atualizar Perfil" para salvar as mudanças.
-
+                            <Text style={styles.textoBotao2}>
+                                Edite ou reescreva as informações nos campos desejados. Após realizar as alterações, clique no botão "Atualizar Perfil" para salvar as mudanças.
                             </Text>
                             <TouchableOpacity style={styles.botaoEnviar} onPress={atualizarPerfil}>
                                 <View style={styles.buttonContent}>
@@ -101,9 +102,10 @@ export default UpdatePerfil = ({ navigation, route }) => {
                     ) : (
                         <Text style={styles.label}>Usuário não encontrado</Text>
                     )}
-                    <Navbar navigation={navigation} />
                 </View>
             </ScrollView>
+
+            <Navbar navigation={navigation} />
         </View>
     );
 };
@@ -112,12 +114,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#3E3C3C',
-        justifyContent: 'space-between',
     },
     scrollContent: {
         flexGrow: 1,
         alignItems: 'center',
-        paddingBottom: 70,
+        paddingBottom: 70, // Espaço para evitar sobreposição da Navbar
     },
     contentWrapper: {
         width: '100%',
@@ -190,13 +191,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 10,
     },
-    botaoExcluir: {
-        backgroundColor: '#e63946',
-        borderRadius: 5,
-        width: '100%',
-        paddingVertical: 10,
-        alignItems: 'center',
-    },
     buttonContent: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -212,11 +206,16 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: Platform.OS === 'web' ? 16 : 14,
         fontWeight: 'bold',
-        marginBottom:8,
+        marginBottom: 8,
     },
     label: {
         color: '#FFFFFF',
         fontSize: 16,
         marginTop: 10,
+    },
+    navbar: {
+        position: 'absolute',
+        bottom: 0,
+        width: '100%',
     },
 });
