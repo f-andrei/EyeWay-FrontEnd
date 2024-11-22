@@ -13,6 +13,7 @@ import RegisterCamera from '../pages/RegisterCamera';
 import HelpGuide from '../components/HelpGuide';
 import Perfil from '../pages/Perfil';
 import UpdateCamera from '../pages/UpdateCamera';
+import UpdatePerfil from '../pages/UpdatePerfil';
 
 const Stack = createStackNavigator();
 
@@ -38,6 +39,7 @@ export default function Navigation() {
         <Stack.Screen name='CamerasList' component={CamerasList} options={{ headerShown: false }} />
         <Stack.Screen name='HelpGuide' component={HelpGuide} options={{ headerShown: false }} />
         <Stack.Screen name='UpdateCamera' component={UpdateCamera} options={{ headerShown: false }} />
+        <Stack.Screen name='UpdatePerfil' component={UpdatePerfil} options={{ headerShown: false }} />
         </>
         
     )}
