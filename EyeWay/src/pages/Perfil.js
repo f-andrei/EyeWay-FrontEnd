@@ -79,25 +79,10 @@ export default Perfil = ({ navigation, route }) => {
 
                     {userData ? (
                         <View style={[styles.card, isWeb && styles.webUserCard]}>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Nome"
-                                placeholderTextColor="#AAA"
-                                value={userData.name}
-                                onChangeText={setNome}
-                            />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="E-mail"
-                                placeholderTextColor="#AAA"
-                                value={userData.email}
-                                onChangeText={setEmail}
-                            />
+                          <Text style={styles.textoBotao2}>Nome: {userData.name}</Text>
+                          <Text style={styles.textoBotao2}>Email: {userData.email}</Text>
                             
-                            <Text style={styles.textoBotao2}>Edite ou reescreva as informações nos campos desejados, Após realizar as alterações, clique no botão "Atualizar Perfil" para salvar as mudanças.
-
-                            </Text>
-                            <TouchableOpacity style={styles.botaoEnviar} onPress={atualizarPerfil}>
+                            <TouchableOpacity style={styles.botaoEnviar} onPress={() =>  navigation.navigate("UpdatePerfil")}>
                                 <View style={styles.buttonContent}>
                                     <Ionicons name="person-add-sharp" size={isWeb ? 28 : 14} color="black" />
                                     <Text style={styles.textoBotao}>Atualizar Perfil</Text>
