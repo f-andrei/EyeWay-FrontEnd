@@ -58,14 +58,14 @@ export default function Live({ route, navigation }) {
           [
             {
               text: 'OK',
-              onPress: () => navigation.navigate('CamerasList')
+              onPress: () => navigation.navigate('Home')
             }
           ]
         );
       }
   
       if (isWeb) {
-        navigation.navigate('CamerasList');
+        navigation.navigate('Home');
       }
   
     } catch (error) {
@@ -90,7 +90,7 @@ export default function Live({ route, navigation }) {
   }
 
   const { width: videoWidth, height: videoHeight } = getVideoDimensions();
-  const stream_url = "http://172.26.148.170:8085/stream/stream.m3u8";
+  const stream_url = "http://172.27.215.199:8085/stream/stream.m3u8";
 
   return (
     <View style={[
