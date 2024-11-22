@@ -29,7 +29,6 @@ export default function Login({ navigation }) {
             const { data } = await axios.post(api_url, { email, senha });
             if (data.token?.length){
                 setAuthenticated(true);
-                window.localStorage.setItem("token",data.token);
                 globalStore.setUserId( data.user_id );
             }
             else{
