@@ -7,7 +7,8 @@ import {
   Platform,
   useWindowDimensions,
   ActivityIndicator,
-  TouchableOpacity
+  TouchableOpacity,
+  Image
 } from 'react-native';
 import { LineChart, BarChart } from "react-native-chart-kit";
 import Navbar from '../components/Navbar';
@@ -131,15 +132,6 @@ export default function Statistics({ navigation }) {
     });
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
-        <Text style={styles.loadingText}>Carregando estatísticas...</Text>
-      </View>
-    );
-  }
-
   const chartConfig = {
     backgroundColor: "#2A2A2A",
     backgroundGradientFrom: "#2A2A2A",
@@ -155,126 +147,157 @@ export default function Statistics({ navigation }) {
       strokeWidth: "2",
       stroke: "#FF9C11"
     },
-
     formatYLabel: (value) => Math.round(value).toString(),
     segments: 4,
     yAxisMinValue: 0,
-
     yAxisMaxValue: (value) => {
       const maxValue = Math.max(...locationStats.datasets[0].data);
       return Math.ceil(maxValue * 1.2); 
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <Navbar navigation={navigation} />
-      
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        style={[
-          styles.mainContent,
-          Platform.OS === 'web' && styles.webMainContent
-        ]}
-      >
-        <View style={styles.contentWrapper}>
-          <View style={styles.tabContainer}>
-            <TouchableOpacity 
-              style={[styles.tab, activeTab === 'infractions' && styles.activeTab]}
-              onPress={() => setActiveTab('infractions')}
-            >
-              <Text style={styles.tabText}>Infrações</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tab, activeTab === 'objects' && styles.activeTab]}
-              onPress={() => setActiveTab('objects')}
-            >
-              <Text style={styles.tabText}>Contagem de Objetos</Text>
-            </TouchableOpacity>
-          </View>
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
+        <Text style={styles.loadingText}>Carregando estatísticas...</Text>
+      </View>
+    );
+  }
 
-          <View style={styles.statsGrid}>
-            {activeTab === 'infractions' ? (
-              <>
-                <View style={styles.statCard}>
-                  <Text style={styles.statTitle}>Total Infrações</Text>
-                  <Text style={styles.statValue}>{infractionStats.totalInfractions}</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statTitle}>Média Diária</Text>
-                  <Text style={styles.statValue}>{infractionStats.dailyAverage}</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statTitle}>Tipo Mais Comum</Text>
-                  <Text style={styles.statValue}>{infractionStats.mostCommonType}</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statTitle}>Veículo Mais Comum</Text>
-                  <Text style={styles.statValue}>{infractionStats.mostCommonVehicle}</Text>
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={styles.statCard}>
-                  <Text style={styles.statTitle}>Total Objetos</Text>
-                  <Text style={styles.statValue}>{objectStats.totalObjects}</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statTitle}>Média Diária</Text>
-                  <Text style={styles.statValue}>{objectStats.dailyAverage}</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statTitle}>Objeto Mais Comum</Text>
-                  <Text style={styles.statValue}>{objectStats.mostCommonObject}</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statTitle}>Locais Ativos</Text>
-                  <Text style={styles.statValue}>{objectStats.activeLocations}</Text>
-                </View>
-              </>
-            )}
-          </View>
+  const mainContent = (
+    <>
+      <View style={styles.containerLogo}>
+        <Image
+          source={require('../assets/LogoComNomeCompletoEyeWay.png')}
+          style={styles.logo}
+        />
+      </View>
 
-          <View style={styles.chartSection}>
-            <Text style={styles.chartTitle}>
-              {activeTab === 'infractions' ? 'Distribuição Horária de Infrações' : 'Distribuição Horária de Detecções'}
-            </Text>
-            <ScrollView horizontal={!isWeb} showsHorizontalScrollIndicator={false}>
-              <LineChart
-                data={hourlyData}
-                width={Math.max(contentWidth, 600)}
-                height={220}
-                chartConfig={chartConfig}
-                bezier
-                style={styles.chart}
-                withHorizontalLines={true}
-                withVerticalLines={false}
-                withDots={true}
-                withShadow={false}
-              />
-            </ScrollView>
-          </View>
-
-          <View style={styles.chartSection}>
-            <Text style={styles.chartTitle}>
-              {activeTab === 'infractions' ? 'Distribuição por Local' : 'Tipos de Objetos Detectados'}
-            </Text>
-            <ScrollView horizontal={!isWeb} showsHorizontalScrollIndicator={false}>
-              <BarChart
-                data={locationStats}
-                width={Math.max(contentWidth, 600)}
-                height={220}
-                chartConfig={chartConfig}
-                style={styles.chart}
-                verticalLabelRotation={0}
-                showValuesOnTopOfBars={true}
-                fromZero={true} 
-                segments={4} 
-              />
-            </ScrollView>
-          </View>
+      <View style={styles.contentWrapper}>
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'infractions' && styles.activeTab]}
+            onPress={() => setActiveTab('infractions')}
+          >
+            <Text style={styles.tabText}>Infrações</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'objects' && styles.activeTab]}
+            onPress={() => setActiveTab('objects')}
+          >
+            <Text style={styles.tabText}>Contagem de Objetos</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
+
+        <View style={styles.statsGrid}>
+          {activeTab === 'infractions' ? (
+            <>
+              <View style={styles.statCard}>
+                <Text style={styles.statTitle}>Total Infrações</Text>
+                <Text style={styles.statValue}>{infractionStats.totalInfractions}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statTitle}>Média Diária</Text>
+                <Text style={styles.statValue}>{infractionStats.dailyAverage}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statTitle}>Tipo Mais Comum</Text>
+                <Text style={styles.statValue}>{infractionStats.mostCommonType}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statTitle}>Veículo Mais Comum</Text>
+                <Text style={styles.statValue}>{infractionStats.mostCommonVehicle}</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.statCard}>
+                <Text style={styles.statTitle}>Total Objetos</Text>
+                <Text style={styles.statValue}>{objectStats.totalObjects}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statTitle}>Média Diária</Text>
+                <Text style={styles.statValue}>{objectStats.dailyAverage}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statTitle}>Objeto Mais Comum</Text>
+                <Text style={styles.statValue}>{objectStats.mostCommonObject}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statTitle}>Locais Ativos</Text>
+                <Text style={styles.statValue}>{objectStats.activeLocations}</Text>
+              </View>
+            </>
+          )}
+        </View>
+
+        <View style={styles.chartSection}>
+          <Text style={styles.chartTitle}>
+            {activeTab === 'infractions' ? 'Distribuição Horária de Infrações' : 'Distribuição Horária de Detecções'}
+          </Text>
+          <ScrollView horizontal={!isWeb} showsHorizontalScrollIndicator={false}>
+            <LineChart
+              data={hourlyData}
+              width={isWeb ? Math.max(contentWidth, 600) : contentWidth} 
+              height={220}
+              chartConfig={chartConfig}
+              bezier
+              style={styles.chart}
+              withHorizontalLines={true}
+              withVerticalLines={false}
+              withDots={true}
+              withShadow={false}
+            />
+          </ScrollView>
+        </View>
+
+        <View style={styles.chartSection}>
+          <Text style={styles.chartTitle}>
+            {activeTab === 'infractions' ? 'Distribuição por Local' : 'Tipos de Objetos Detectados'}
+          </Text>
+          <ScrollView horizontal={!isWeb} showsHorizontalScrollIndicator={false}>
+            <BarChart
+              data={locationStats}
+              width={isWeb ? Math.max(contentWidth, 600) : contentWidth}
+              height={220}
+              chartConfig={chartConfig}
+              style={styles.chart}
+              verticalLabelRotation={0}
+              showValuesOnTopOfBars={true}
+              fromZero={true} 
+              segments={4} 
+            />
+          </ScrollView>
+        </View>
+      </View>
+    </>
+  );
+
+  return (
+    <View style={[styles.container, isWeb && styles.webContainer]}>
+      {isWeb ? (
+        <>
+          <Navbar navigation={navigation} />
+          <div style={{ 
+            flex: 1,
+            marginLeft: 190,
+            height: '100vh',
+            overflowY: 'auto',
+          }}>
+            <View style={styles.webMainContent}>
+              {mainContent}
+            </View>
+          </div>
+        </>
+      ) : (
+        <>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            {mainContent}
+          </ScrollView>
+          <Navbar navigation={navigation} />
+        </>
+      )}
     </View>
   );
 }
@@ -284,10 +307,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#3E3C3C',
   },
-  webMainContent: {
-    marginLeft: 190,
+  webContainer: {
     height: '100vh',
-    overflow: 'auto',
+    flexDirection: 'row',
+  },
+  webMainContent: {
+    width: '100%',
+    padding: 20,
   },
   loadingContainer: {
     justifyContent: 'center',
@@ -299,8 +325,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingBottom: Platform.OS === 'web' ? 20 : 70,
+  },
+  webScrollContent: {
+    paddingTop: 20,
+    minHeight: '100%',
+  },
+  containerLogo: {
+    alignItems: 'center',
+    marginTop: 40,
+    marginBottom: 30,
+    width: '100%',
+  },
+  logo: {
+    width: '80%',
+    height: 120,
+    resizeMode: 'contain',
   },
   contentWrapper: {
     width: '100%',
@@ -358,6 +401,8 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     width: '100%',
+    minWidth: Platform.OS === 'web' ? 'auto' : '90%', 
+    alignItems: 'center',
   },
   chartTitle: {
     color: '#C26015',
