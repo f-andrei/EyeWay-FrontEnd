@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Dimensions,
   RefreshControl,
+  TouchableOpacity,
+  Alert
 } from 'react-native';
 import Navbar from '../components/Navbar';
 
@@ -20,78 +22,216 @@ export default function Infractions({ navigation }) {
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
   const isWeb = Platform.OS === 'web';
 
+  const baseUrl = Platform.OS === 'android'
+    ? 'http://10.0.2.2:3000'
+    : 'http://localhost:3000';
+  
+  const api_url = `${baseUrl}/infractions`;
+
   useEffect(() => {
-    if (isWeb) {
-      const handleResize = () => {
-        setDimensions({
-          width: window.innerWidth,
-          height: window.innerHeight
-        });
-      };
-      
-      window.addEventListener('resize', handleResize);
-      handleResize();
-      return () => window.removeEventListener('resize', handleResize);
-    }
+    const testApi = async () => {
+      try {
+        const response = await fetch(api_url);
+        console.log('API test response:', response.status);
+      } catch (err) {
+        console.error('API test failed:', err);
+      }
+    };
+    testApi();
+  }, []);
+  
+  useEffect(() => {
+    const handleDimensionChange = () => {
+      setDimensions(Dimensions.get('window'));
+    };
+
+    Dimensions.addEventListener('change', handleDimensionChange);
+    return () => {
+      if (Dimensions.removeEventListener) {
+        Dimensions.removeEventListener('change', handleDimensionChange);
+      }
+    };
   }, []);
 
-  const getImageDimensions = () => {
-    if (isWeb) {
-      const maxWidth = Math.min(dimensions.width * 0.99, 800);
-      const maxHeight = dimensions.height * 0.85;
-      const widthBasedHeight = maxWidth * 9 / 16;
-      
-      return {
-        width: maxWidth,
-        height: Math.min(widthBasedHeight, maxHeight)
-      };
+  const showConfirmDialog = (title, message, onConfirm) => {
+    if (Platform.OS === 'web') {
+      const result = window.confirm(message);
+      if (result) {
+        onConfirm();
+      }
+    } else {
+      Alert.alert(
+        title,
+        message,
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel'
+          },
+          {
+            text: 'Deletar',
+            onPress: onConfirm,
+            style: 'destructive'
+          }
+        ],
+        { cancelable: true }
+      );
     }
-    return {
-      width: dimensions.width * 0.9,
-      height: (dimensions.width * 0.9) * 9 / 16
-    };
   };
 
-  const { width: imageWidth, height: imageHeight } = getImageDimensions();
-
-  const api_url = Platform.OS === 'android' 
-    ? "http://10.0.2.2:3000/infractions" 
-    : "http://localhost:3000/infractions";
+  const showAlert = (title, message) => {
+    if (Platform.OS === 'web') {
+      window.alert(message);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
 
   const fetchInfractions = async () => {
+    console.log('Fetching infractions...');
     try {
       const response = await fetch(api_url);
+      console.log('Fetch response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch infractions');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch infractions');
       }
       const data = await response.json();
+      console.log('Fetched infractions count:', data.length);
       setInfractions(data);
       setError(null);
     } catch (err) {
+      console.error('Fetch error:', err);
       setError(err.message);
-      console.error('Error fetching infractions:', err);
+      setInfractions([]);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    fetchInfractions();
-  }, []);
+  const handleRefreshPress = async () => {
+    setLoading(true);
+    try {
+      await fetchInfractions();
+      showAlert('Sucesso', 'Lista atualizada com sucesso!');
+    } catch (error) {
+      console.error('Refresh error:', error);
+      showAlert('Erro', 'Falha ao atualizar a lista');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePress = () => {
+    console.log('Delete button pressed');
+    showConfirmDialog(
+      'Confirmação',
+      'Tem certeza que deseja deletar todas as infrações?',
+      deleteAllInfractions
+    );
+  };
+
+  const deleteAllInfractions = async () => {
+    console.log('Delete confirmation accepted');
+    setLoading(true);
+    try {
+      const deleteUrl = `${baseUrl}/deleteAll`;
+      console.log('Attempting to delete at URL:', deleteUrl);
+      
+      const response = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Delete response status:', response.status);
+
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.log('Response is not JSON:', e);
+        throw new Error('Invalid server response');
+      }
+
+      if (!response.ok) {
+        throw new Error(result.message || `Server returned ${response.status}`);
+      }
+
+      setInfractions([]);
+      showAlert(
+        'Sucesso',
+        `Todas as infrações foram deletadas com sucesso. ${result.deletedCount || 0} registros removidos.`
+      );
+
+    } catch (err) {
+      console.error('Delete error:', err);
+      showAlert(
+        'Erro',
+        'Falha ao deletar infrações: ' + (err.message || 'Erro desconhecido')
+      );
+      setError(err.message || 'Erro desconhecido');
+    } finally {
+      setLoading(false);
+      await fetchInfractions();
+    }
+  };
+
+  const updateInfractionStatus = async (infractionId, status) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${api_url}/${infractionId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+
+      await fetchInfractions();
+      showAlert('Sucesso', 'Status atualizado com sucesso');
+    } catch (err) {
+      showAlert('Erro', 'Falha ao atualizar o status: ' + err.message);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchInfractions();
   }, []);
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </View>
-    );
-  }
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchInfractions().then(() => setRefreshing(false));
+  }, []);
+
+  const getImageDimensions = () => {
+    const isDesktop = dimensions.width > 768;
+    const maxWidth = isDesktop ? Math.min(800, dimensions.width * 0.6) : dimensions.width * 0.9;
+    const maxHeight = dimensions.height * 0.85;
+    const widthBasedHeight = (maxWidth * 9) / 16;
+
+    return {
+      width: maxWidth,
+      height: Math.min(widthBasedHeight, maxHeight),
+    };
+  };
+
+  const getContainerWidth = () => {
+    const isDesktop = dimensions.width > 768;
+    return isDesktop ? Math.min(1000, dimensions.width * 0.7) : dimensions.width;
+  };
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
@@ -100,248 +240,290 @@ export default function Infractions({ navigation }) {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  return (
-    <View style={[
-      styles.container,
-      isWeb && styles.webContainer
-    ]}>
-      {isWeb ? (
-        <div style={{
-          height: '100vh',
-          overflowY: 'auto',
-          backgroundColor: '#3E3C3C',
-          paddingBottom: '60px' 
-        }}>
-          <View style={[
-            styles.scrollContent,
-            styles.webScrollContent
-          ]}>
-            <View style={styles.containerDescricao}>
-              <Text style={[
-                styles.textoTitulo,
-                styles.webTextoTitulo
-              ]}>Alertas de Infração</Text>
-              <Text style={[
-                styles.textoSubtitulo,
-                styles.webTextoSubtitulo
-              ]}>Últimas 5 infrações detectadas</Text>
-            </View>
+  const StatusButton = ({ label, onPress, status, currentStatus }) => (
+    <TouchableOpacity
+      style={[
+        styles.statusButton,
+        currentStatus === status && styles.statusButtonActive
+      ]}
+      onPress={onPress}
+    >
+      <Text style={[
+        styles.statusButtonText,
+        currentStatus === status && styles.statusButtonTextActive
+      ]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
 
-            {error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>
-                  Erro ao carregar infrações: {error}
-                </Text>
-              </View>
-            ) : (
-              <View style={[
-                styles.containerImagens,
-                { paddingBottom: 20 }
-              ]}>
-                {infractions.map((infraction, index) => (
-                  <View 
-                    key={index} 
-                    style={[
-                      styles.infractionCard,
-                      { width: imageWidth }
-                    ]}
-                  >
-                    <Image
-                      source={{ uri: `data:image/jpeg;base64,${infraction.image_base64}` }}
-                      style={[
-                        styles.infractionImage,
-                        { width: imageWidth, height: imageHeight }
-                      ]}
-                      defaultSource={require('../assets/placeholder.jpg')}
-                    />
-                    <View style={styles.infractionInfo}>
-                      <Text style={[
-                        styles.infractionType,
-                        styles.webInfoTexto
-                      ]}>
-                        {infraction.infraction_type || 'Tipo não especificado'}
-                      </Text>
-                      <Text style={[
-                        styles.infractionDetail,
-                        styles.webInfoTexto
-                      ]}>
-                        Nome da câmera: {infraction.camera_name || 'Não especificado'}
-                      </Text>
-                      <Text style={[
-                        styles.infractionDetail,
-                        styles.webInfoTexto
-                      ]}>
-                        Tipo de Veículo: {infraction.vehicle_type || 'Não especificado'}
-                      </Text>
-                      <Text style={[
-                        styles.infractionDetail,
-                        styles.webInfoTexto
-                      ]}>
-                        Data: {formatDate(infraction.timestamp)}
-                      </Text>
-                      <Text style={[
-                        styles.infractionDetail,
-                        styles.webInfoTexto
-                      ]}>
-                        Local: {infraction.camera_location || 'Não especificado'}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        </div>
-      ) : (
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
+  console.log("Component rendered");
+
+  if (loading) {
+    return (
+      <View style={styles.mainContainer}>
+        <View style={styles.navbarContainer}>
+          <Navbar navigation={navigation} />
+        </View>
+        <View style={[styles.loadingContainer, { width: getContainerWidth() }]}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.mainContainer}>
+      <View style={styles.navbarContainer}>
+        <Navbar navigation={navigation} />
+      </View>
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.contentContainer,
+            { maxWidth: getContainerWidth() }
+          ]}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#FFFFFF"
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
           }
         >
-          <View style={styles.containerLogo}>
-            <Image
-              source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-              style={styles.logo}
-            />
-          </View>
-
-          <View style={styles.containerDescricao}>
-            <Text style={styles.textoTitulo}>Alertas de Infração</Text>
-            <Text style={styles.textoSubtitulo}>
-              Últimas 5 infrações detectadas
-            </Text>
+          <View style={styles.headerContainer}>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.deleteAllButton}
+                onPress={handleDeletePress}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.deleteAllButtonText}>
+                  Deletar Todas as Infrações
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={handleRefreshPress}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.refreshButtonText}>
+                  Atualizar
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>
-                Erro ao carregar infrações: {error}
-              </Text>
+            <Text style={styles.errorText}>Erro: {error}</Text>
+          ) : infractions.length === 0 ? (
+            <View style={styles.emptyStateContainer}>
+              <Text style={styles.emptyStateText}>Nenhuma infração encontrada</Text>
             </View>
           ) : (
-            <View style={styles.containerImagens}>
-              {infractions.map((infraction, index) => (
-                <View 
-                  key={index} 
-                  style={styles.infractionCard}
-                >
+            infractions.map((infraction) => (
+              <View key={infraction.id} style={styles.infractionCard}>
+                <View style={styles.imageContainer}>
                   <Image
                     source={{ uri: `data:image/jpeg;base64,${infraction.image_base64}` }}
-                    style={[
-                      styles.infractionImage,
-                      { width: '100%', height: imageHeight }
-                    ]}
-                    defaultSource={require('../assets/placeholder.jpg')}
+                    style={[styles.image, getImageDimensions()]}
+                    resizeMode="contain"
                   />
-                  <View style={styles.infractionInfo}>
-                    <Text style={styles.infractionType}>
-                      {infraction.infraction_type || 'Tipo não especificado'}
-                    </Text>
-                    <Text style={styles.infractionDetail}>
-                      Câmera ID: {infraction.camera_id}
-                    </Text>
-                    <Text style={styles.infractionDetail}>
-                      Tipo de Veículo: {infraction.vehicle_type || 'Não especificado'}
-                    </Text>
-                    <Text style={styles.infractionDetail}>
-                      Data: {formatDate(infraction.timestamp)}
-                    </Text>
+                </View>
+                <View style={styles.infoContainer}>
+                  <Text style={styles.infractionType}>
+                    {infraction.infraction_type || 'Tipo não especificado'}
+                  </Text>
+                  <Text style={styles.infractionDetail}>
+                    Câmera: {infraction.camera_name || 'Não especificado'}
+                  </Text>
+                  <Text style={styles.infractionDetail}>
+                    Data: {formatDate(infraction.timestamp)}
+                  </Text>
+                  <Text style={styles.infractionDetail}>
+                    Status atual: {infraction.status || 'Pendente'}
+                  </Text>
+                  <View style={styles.statusButtonsContainer}>
+                    <StatusButton
+                      label="Confirmar"
+                      status="Verificado"
+                      currentStatus={infraction.status}
+                      onPress={() => updateInfractionStatus(infraction.id, 'Verificado')}
+                    />
+                    <StatusButton
+                      label="Alerta falso"
+                      status="Alerta falso"
+                      currentStatus={infraction.status}
+                      onPress={() => updateInfractionStatus(infraction.id, 'Alerta falso')}
+                    />
                   </View>
                 </View>
-              ))}
-            </View>
+              </View>
+            ))
           )}
         </ScrollView>
-      )}
-
-      <Navbar navigation={navigation} />
+      </View>
     </View>
   );
 }
+
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#3E3C3C',
+    height: Platform.OS === 'web' ? '100vh' : '100%',
+    overflow: Platform.OS === 'web' ? 'hidden' : 'visible',
+  },
+  navbarContainer: {
+    width: Platform.OS === 'web' ? 200 : '100%',
+    backgroundColor: '#1B2B3A',
+    ...Platform.select({
+      web: {
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        left: 0,
+      },
+      default: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1,
+      },
+    }),
+  },
   container: {
     flex: 1,
     backgroundColor: '#3E3C3C',
-    justifyContent: 'space-between',
+    ...(Platform.OS === 'web' && {
+      height: '100vh',
+      overflow: 'hidden',
+    }),
   },
-  webContainer: {
-    height: '100vh',
-    position: 'relative',
-  },
-  webScrollView: {
+  scrollView: {
     flex: 1,
-    paddingBottom: 60,
+    backgroundColor: '#3E3C3C',
+    ...(Platform.OS === 'web' && {
+      height: '100vh',
+      overflow: 'auto',
+    }),
+  },
+  contentContainer: {
+    padding: 20,
+    alignItems: 'center',
+    alignSelf: 'center',
+    width: '100%',
+    paddingBottom: Platform.OS === 'web' ? 20 : 80,
+    ...(Platform.OS === 'web' && {
+      minHeight: '100%',
+    }),
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#3E3C3C',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    alignItems: 'center',
-    paddingBottom: 70,
-  },
-  webScrollContent: {
-    paddingTop: 10,
-    paddingBottom: 100,
-    minHeight: '100%',
-  },
-  containerLogo: {
-    alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 30,
-    width: '100%',
-  },
-  logo: {
-    width: '80%',
-    height: 120,
-    resizeMode: 'contain',
-  },
-  containerDescricao: {
-    marginBottom: 20,
-    width: '90%',
-    alignItems: 'center',
-  },
-  textoTitulo: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  webTextoTitulo: {
-    fontSize: 16,
-    marginTop: 10,
-    marginBottom: 2,
-  },
-  textoSubtitulo: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    marginTop: 5,
-  },
-  webTextoSubtitulo: {
-    fontSize: 10,
-  },
-  containerImagens: {
-    width: '90%',
-    alignItems: 'center',
+    backgroundColor: '#3E3C3C',
   },
   infractionCard: {
-    width: '100%',
     backgroundColor: '#2A2A2A',
     borderRadius: 10,
     marginBottom: 20,
-    overflow: 'hidden',
-    elevation: 5,
+    padding: 20,
+    width: '100%',
+    maxWidth: '100%',
+  },
+  imageContainer: {
+    alignItems: 'center',
+    marginBottom: 15,
+    width: '100%',
+  },
+  image: {
+    borderRadius: 10,
+    width: '100%',
+  },
+  infoContainer: {
+    width: '100%',
+  },
+  infractionType: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  infractionDetail: {
+    fontSize: 14,
+    color: '#AAAAAA',
+    marginTop: 5,
+    textAlign: 'center',
+  },
+  statusButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 15,
+    gap: 10,
+  },
+  statusButton: {
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#2A2A2A',
+    borderWidth: 1,
+    borderColor: '#4A4A4A',
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  statusButtonActive: {
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
+  },
+  statusButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  statusButtonTextActive: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#AAAAAA',
+    marginBottom: 20,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 16,
+  },
+  headerContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 20,
+  },
+  deleteAllButton: {
+    backgroundColor: '#DC3545',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -350,34 +532,39 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  infractionImage: {
-    resizeMode: 'cover',
+  refreshButton: {
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  infractionInfo: {
-    padding: 15,
-  },
-  infractionType: {
+  deleteAllButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  infractionDetail: {
-    color: '#CCCCCC',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  webInfoTexto: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  errorContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  errorText: {
-    color: '#FF6B6B',
     fontSize: 16,
-    textAlign: 'center',
+    fontWeight: '500',
   },
+  refreshButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40
+  },
+  emptyStateText: {
+    color: '#AAAAAA',
+    fontSize: 16,
+    textAlign: 'center'
+  }
 });
