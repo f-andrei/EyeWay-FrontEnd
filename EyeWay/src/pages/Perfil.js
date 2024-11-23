@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity, Image, TextInput, ScrollView } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity, Image, TextInput, ScrollView, Dimensions } from 'react-native';
 import axios from 'axios';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Navbar from '../components/Navbar';
 import { useStore } from '../store/globalStore';
 
-
 export default Perfil = ({ navigation, route }) => {
     const isWeb = Platform.OS === 'web';
-
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
     
@@ -33,10 +31,23 @@ export default Perfil = ({ navigation, route }) => {
         }
     }, [globalStore.user_id]);
 
+    const atualizarPerfil = async () => {
+        await axios.put(`${API_URL}/users/${globalStore.user_id}`, userData);
+        navigation.navigate('Home')
+    };
+
     const deletarConta = async () => {
         await axios.delete(`${API_URL}/users/${globalStore.user_id}`);
         globalStore.setAuthenticated(false)
     };
+
+    const setNome = (name) => {
+        setUserData({...userData,name})
+    }
+
+    const setEmail = (email) => {
+        setUserData({...userData,email})
+    }
 
     if (loading) {
         return <ActivityIndicator size="large" color="#0000ff" />;
@@ -46,37 +57,35 @@ export default Perfil = ({ navigation, route }) => {
         <View style={styles.container}>
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
-                style={Platform.OS === 'web' ? { height: 'calc(100vh - 60px)', width: '100%' } : { flex: 1 }}
+                style={{ width: '100%' }}
             >
                 <View style={[styles.contentWrapper, isWeb && styles.webContentWrapper]}>
-                    {!isWeb && (
-                        <View style={styles.containerLogo}>
-                            <Image
-                                source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-                                style={styles.logo}
-                            />
-                        </View>
-                    )}
-                    
-                    <View style={[styles.containerDescricao, isWeb && { width: '70%', marginTop: 40 }]}>
+                    <View style={[styles.containerLogo, isWeb && styles.webContainerLogo]}>
+                        <Image
+                            source={require('../assets/LogoComNomeCompletoEyeWay.png')}
+                            style={[styles.logo, isWeb && styles.webLogo]}
+                        />
+                    </View>
+
+                    <View style={[styles.containerDescricao, isWeb && { width: '70%', marginTop: 20 }]}>
                         <View style={styles.header}>
                             <Ionicons name="person" size={isWeb ? 40 : 25} color="orange" />
                             <Text style={styles.textoDescricao}>Perfil do Usuário</Text>
                         </View>
                     </View>
-    
+
                     {userData ? (
                         <View style={[styles.card, isWeb && styles.webUserCard]}>
                             <Text style={styles.textoBotao2}>Nome: {userData.name}</Text>
                             <Text style={styles.textoBotao2}>Email: {userData.email}</Text>
-    
+                            
                             <TouchableOpacity style={styles.botaoEnviar} onPress={() => navigation.navigate("UpdatePerfil")}>
                                 <View style={styles.buttonContent}>
                                     <Ionicons name="person-add-sharp" size={isWeb ? 28 : 14} color="black" />
                                     <Text style={styles.textoBotao}>Atualizar Perfil</Text>
                                 </View>
                             </TouchableOpacity>
-    
+
                             <TouchableOpacity style={styles.botaoExcluir} onPress={deletarConta}>
                                 <View style={styles.buttonContent}>
                                     <Ionicons name="person-remove" size={isWeb ? 28 : 14} color="black" />
@@ -89,43 +98,48 @@ export default Perfil = ({ navigation, route }) => {
                     )}
                 </View>
             </ScrollView>
-    
-            <Navbar navigation={navigation} style={Platform.OS === 'web' ? {} : styles.navbarMobile} />
+            <Navbar navigation={navigation} />
         </View>
     );
-}    
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#3E3C3C',
-        justifyContent: 'space-between',
     },
     scrollContent: {
         flexGrow: 1,
         alignItems: 'center',
+        paddingTop: 40,
         paddingBottom: 70,
     },
     contentWrapper: {
         width: '100%',
         alignItems: 'center',
-        paddingTop: 20, 
     },
     webContentWrapper: {
-        maxWidth: 800,
+        maxWidth: 1200, 
         width: '99%',
         paddingHorizontal: 0,
     },
     containerLogo: {
         alignItems: 'center',
-        marginTop: 40,
         marginBottom: 30,
         width: '100%',
+    },
+    webContainerLogo: {
+        marginTop: 20,
+        marginBottom: 40,
     },
     logo: {
         width: '80%',
         height: 120,
         resizeMode: 'contain',
+    },
+    webLogo: {
+        width: 200,
+        height: 80,
     },
     containerDescricao: {
         backgroundColor: '#3E3C3C',
@@ -149,15 +163,18 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: '#1E1E1E',
-        padding: 20,
+        padding: 40, 
         borderRadius: 15,
-        width: '85%',
+        width: Platform.OS === 'web' ? '90%' : '85%', 
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.4,
         shadowRadius: 4,
         marginBottom: 20,
+    },
+    webUserCard: {
+        maxWidth: 600,
     },
     input: {
         backgroundColor: '#2E2E2E',
@@ -174,16 +191,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#FF9C11',
         borderRadius: 5,
         width: '100%',
-        paddingVertical: 10,
+        paddingVertical: 12,
         alignItems: 'center',
-        marginBottom: 10,
+        marginVertical: 8, 
     },
     botaoExcluir: {
         backgroundColor: '#e63946',
         borderRadius: 5,
         width: '100%',
-        paddingVertical: 10,
+        paddingVertical: 12,
         alignItems: 'center',
+        marginVertical: 8, 
     },
     buttonContent: {
         flexDirection: 'row',
@@ -200,7 +218,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: Platform.OS === 'web' ? 16 : 14,
         fontWeight: 'bold',
-        marginBottom:8,
+        marginVertical: 10, 
     },
     label: {
         color: '#FFFFFF',
