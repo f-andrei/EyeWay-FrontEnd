@@ -31,43 +31,50 @@ export const useDrawing = () => {
 
   // Line handlers
   const handleLineComplete = useCallback((points) => {
-    console.log('Line complete:', points);
+    // Only show modal when both crossing and direction lines are drawn
     if (points?.crossing && points?.direction) {
       const lineData = {
         crossing: points.crossing,
         direction: points.direction,
-        type: lineType // Include the current lineType
+        type: lineType
       };
-      console.log('Setting temp line:', lineData);
       setTempLine(lineData);
       setShowLineModal(true);
     }
-  }, [lineType]); // Add lineType to dependencies
+  }, [lineType]);
 
   const handleLineSave = useCallback(({ name, type }) => {
-    console.log('Saving line:', { name, type, tempLine });
     if (tempLine && name) {
       const newLine = {
         crossing: tempLine.crossing,
         direction: tempLine.direction,
-        type: type || 'Contagem',
+        type: type || lineType,
         name: name.trim()
       };
-      console.log('New line to add:', newLine);
       setLinePairs(prev => [...prev, newLine]);
       setTempLine(null);
+      // Reset currentLinePair after saving
+      setCurrentLinePair({ 
+        crossing: null, 
+        direction: null, 
+        type: null,
+        name: null 
+      });
     }
     setShowLineModal(false);
-  }, [tempLine]);
+  }, [tempLine, lineType]);
 
   const handleLineModalClose = useCallback(() => {
     setShowLineModal(false);
     setTempLine(null);
-    // Reset current line pair if user cancels
-    if (currentLinePair.crossing && !currentLinePair.direction) {
-      setCurrentLinePair({ crossing: null, direction: null, type: null, name: null });
-    }
-  }, [currentLinePair]);
+    // Reset currentLinePair when modal is closed
+    setCurrentLinePair({ 
+      crossing: null, 
+      direction: null, 
+      type: null,
+      name: null 
+    });
+  }, []);
 
   // ROI handlers
   const handleROIClick = useCallback((point) => {
@@ -143,17 +150,17 @@ export const useDrawing = () => {
     if (drawing) {
       if (mode === 'LINE' && currentShape.length >= 1) {
         const linePoints = [...currentShape, point];
-        console.log('Drawing end with points:', linePoints);
         
         if (!currentLinePair.crossing) {
-          console.log('Setting crossing line');
+          // First line of the pair (crossing line)
           setCurrentLinePair({
             ...currentLinePair,
             crossing: linePoints,
             type: lineType
           });
         } else {
-          console.log('Completing line pair');
+          // Second line of the pair (direction line)
+          // Only now we call handleLineComplete
           handleLineComplete({
             crossing: currentLinePair.crossing,
             direction: linePoints,
@@ -165,7 +172,6 @@ export const useDrawing = () => {
       setDrawing(false);
     }
   }, [drawing, mode, currentShape, currentLinePair, lineType, handleLineComplete]);
-
   // Handle undo action
   const handleUndo = useCallback(() => {
     if (mode === 'LINE') {
@@ -208,15 +214,23 @@ export const useDrawing = () => {
       // Clean up current drawing state when switching modes
       setCurrentShape([]);
       setDrawing(false);
-      if (mode === 'LINE' && currentLinePair.crossing) {
-        setCurrentLinePair({ crossing: null, direction: null, type: null, name: null });
+      if (mode === 'LINE') {
+        // Reset line drawing state when switching modes
+        setCurrentLinePair({ 
+          crossing: null, 
+          direction: null, 
+          type: null,
+          name: null 
+        });
+        setTempLine(null);
+        setShowLineModal(false);
       } else if (mode === 'ROI') {
         setRoiPoints([]);
         setIsDrawingROI(false);
       }
       setMode(newMode);
     }
-  }, [mode, currentLinePair]);
+  }, [mode]);
 
   return {
     // Mode
