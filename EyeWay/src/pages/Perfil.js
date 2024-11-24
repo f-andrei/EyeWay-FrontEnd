@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity, Image, TextInput, ScrollView, Dimensions } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity, Image, ScrollView, Modal } from 'react-native';
 import axios from 'axios';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Navbar from '../components/Navbar';
 import { useStore } from '../store/globalStore';
 
-export default Perfil = ({ navigation, route }) => {
+export default Perfil = ({ navigation }) => {
     const isWeb = Platform.OS === 'web';
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
-    
+    const [modalVisible, setModalVisible] = useState(false); 
+
     const API_URL = Platform.OS === 'android'
         ? "http://10.0.2.2:3000"
         : "http://localhost:3000";
 
     const globalStore = useStore();
-    
+
     useEffect(() => {
-        console.log(globalStore.user_id)
         if (globalStore.user_id) {
             axios.get(`${API_URL}/users/${globalStore.user_id}`)
                 .then(response => {
@@ -31,23 +31,12 @@ export default Perfil = ({ navigation, route }) => {
         }
     }, [globalStore.user_id]);
 
-    const atualizarPerfil = async () => {
-        await axios.put(`${API_URL}/users/${globalStore.user_id}`, userData);
-        navigation.navigate('Home')
-    };
-
     const deletarConta = async () => {
         await axios.delete(`${API_URL}/users/${globalStore.user_id}`);
-        globalStore.setAuthenticated(false)
+        globalStore.setAuthenticated(false);
+        setModalVisible(false); // Fecha o modal
+        navigation.navigate('Login'); // Redireciona para a tela de login
     };
-
-    const setNome = (name) => {
-        setUserData({...userData,name})
-    }
-
-    const setEmail = (email) => {
-        setUserData({...userData,email})
-    }
 
     if (loading) {
         return <ActivityIndicator size="large" color="#0000ff" />;
@@ -78,7 +67,6 @@ export default Perfil = ({ navigation, route }) => {
                         <View style={[styles.card, isWeb && styles.webUserCard]}>
                             <Text style={styles.textoBotao2}>Nome: {userData.name}</Text>
                             <Text style={styles.textoBotao2}>Email: {userData.email}</Text>
-                            
                             <TouchableOpacity style={styles.botaoEnviar} onPress={() => navigation.navigate("UpdatePerfil")}>
                                 <View style={styles.buttonContent}>
                                     <Ionicons name="person-add-sharp" size={isWeb ? 28 : 14} color="black" />
@@ -86,7 +74,10 @@ export default Perfil = ({ navigation, route }) => {
                                 </View>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={styles.botaoExcluir} onPress={deletarConta}>
+                            <TouchableOpacity
+                                style={styles.botaoExcluir}
+                                onPress={() => setModalVisible(true)} 
+                            >
                                 <View style={styles.buttonContent}>
                                     <Ionicons name="person-remove" size={isWeb ? 28 : 14} color="black" />
                                     <Text style={styles.textoBotao}>Deletar Conta</Text>
@@ -98,6 +89,27 @@ export default Perfil = ({ navigation, route }) => {
                     )}
                 </View>
             </ScrollView>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Confirmação</Text>
+                        <Text style={styles.modalMessage}>Tem certeza de que deseja deletar sua conta? Esta ação não pode ser desfeita.</Text>
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setModalVisible(false)}>
+                                <Text style={styles.modalButtonText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalButtonConfirm} onPress={deletarConta}>
+                                <Text style={styles.modalButtonText}>Deletar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
             <Navbar navigation={navigation} />
         </View>
     );
@@ -224,5 +236,58 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         marginTop: 10,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContainer: {
+        backgroundColor: '#FFFFFF',
+        width: Platform.OS === 'web' ? '40%' : '80%', 
+        maxWidth: 400, 
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    modalMessage: {
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    modalActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    modalButtonCancel: {
+        backgroundColor: '#6c757d',
+        padding: 10,
+        borderRadius: 5,
+        flex: 1,
+        alignItems: 'center',
+        marginRight: 5,
+    },
+    modalButtonConfirm: {
+        backgroundColor: '#e63946',
+        padding: 10,
+        borderRadius: 5,
+        flex: 1,
+        alignItems: 'center',
+        marginLeft: 5,
+    },
+    modalButtonText: {
+        color: '#FFFFFF',
+        fontWeight: 'bold',
     },
 });
