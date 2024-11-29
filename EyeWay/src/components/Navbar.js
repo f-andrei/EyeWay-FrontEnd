@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AntDesign from '@expo/vector-icons/AntDesign';
 
 export default function Navbar({ navigation }) {
   const isWeb = Platform.OS === 'web';
@@ -19,18 +20,18 @@ export default function Navbar({ navigation }) {
         </View>
       )}
 
-      <TouchableOpacity 
-        onPress={() => navigation.navigate('Home')} 
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Home')}
         style={[
           estilos.navItem,
           isWeb && estilos.webNavItem,
         ]}
       >
         <View style={estilos.webIconContainer}>
-          <Ionicons 
-            name="home-outline" 
+          <Ionicons
+            name="home-outline"
             size={isWeb ? 21 : 30}
-            color="white" 
+            color="white"
           />
         </View>
         <Text style={[
@@ -39,18 +40,18 @@ export default function Navbar({ navigation }) {
         ]}>Início</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity 
-        onPress={() => navigation.navigate('Live')} 
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Live')}
         style={[
           estilos.navItem,
           isWeb && estilos.webNavItem,
         ]}
       >
         <View style={estilos.webIconContainer}>
-          <Ionicons 
-            name="videocam-outline" 
+          <Ionicons
+            name="videocam-outline"
             size={isWeb ? 21 : 30}
-            color="white" 
+            color="white"
           />
         </View>
         <Text style={[
@@ -59,18 +60,18 @@ export default function Navbar({ navigation }) {
         ]}>Ao Vivo</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity 
-        onPress={() => navigation.navigate('Infractions')} 
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Infractions')}
         style={[
           estilos.navItem,
           isWeb && estilos.webNavItem,
         ]}
       >
         <View style={estilos.webIconContainer}>
-          <Ionicons 
-            name="warning-outline" 
+          <Ionicons
+            name="warning-outline"
             size={isWeb ? 21 : 30}
-            color="white" 
+            color="white"
           />
         </View>
         <Text style={[
@@ -79,18 +80,35 @@ export default function Navbar({ navigation }) {
         ]}>Alertas</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity 
-        onPress={() => navigation.navigate('Statistics')} 
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Operations')}
         style={[
           estilos.navItem,
           isWeb && estilos.webNavItem,
         ]}
       >
         <View style={estilos.webIconContainer}>
-          <Ionicons 
-            name="stats-chart-outline" 
+        <AntDesign name="enviroment" size={isWeb ? 21:30} color="white" />
+        </View>
+        <Text style={[
+          estilos.navTexto,
+          isWeb && estilos.webNavTexto
+        ]}>Operações</Text>
+      </TouchableOpacity>
+
+
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Statistics')}
+        style={[
+          estilos.navItem,
+          isWeb && estilos.webNavItem,
+        ]}
+      >
+        <View style={estilos.webIconContainer}>
+          <Ionicons
+            name="stats-chart-outline"
             size={isWeb ? 21 : 30}
-            color="white" 
+            color="white"
           />
         </View>
         <Text style={[
@@ -129,29 +147,29 @@ const estilos = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 10,
     borderRightWidth: 1,
-    width: 190,  
-    minWidth: 130, 
+    width: 190,
+    minWidth: 130,
     overflowY: 'auto',
-    overflowX: 'hidden', 
+    overflowX: 'hidden',
     boxShadow: '2px 0 8px rgba(0, 0, 0, 0.2)',
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 20,
-    width: '100%', 
+    width: '100%',
   },
   webLogo: {
-    width: 170,  
+    width: 170,
     height: 90,
     resizeMode: 'contain',
     backgroundColor: '#2C2F4D',
     borderRadius: 8,
   },
   navItem: {
-      alignItems: 'center',
-      justifyContent: 'center', 
-      width: 70, 
-      height: 70, 
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 70,
+    height: 70,
   },
   webIconContainer: {
     width: 42,
