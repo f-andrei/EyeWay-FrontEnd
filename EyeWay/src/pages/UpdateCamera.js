@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,38 +13,59 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import Navbar from '../components/Navbar';
 import axios from 'axios';
+import { LineInputModal } from '../components/LineInputModal';
+import { ROIInputModal } from '../components/ROIInputModal';
+import { LineTypeSelector } from '../components/LineTypeSelector';
+import { InfoSection } from '../components/InfoSection';
+import { ROITypeSelector } from '../components/ROITypeSelector';
+import { useCanvas } from '../hooks/useCanvas';
+import Navbar from '../components/Navbar';
 
-export default function CameraRegistration({ navigation, route}) {
-    const camera_id = route.params?.camera_id;
-    console.log(camera_id);
+export default function CameraRegistration({ navigation, route }) {
+  const camera_id = route.params?.camera_id;
   const [cameraInfo, setCameraInfo] = useState({
+    id: null,
     name: '',
     location: '',
     address: '',
     type: '',
-    imageData: null  
+    imageData: null
   });
-  
+
+  // Drawing state
   const [mode, setMode] = useState('LINE');
   const [lineType, setLineType] = useState('Contagem');
   const [linePairs, setLinePairs] = useState([]);
-  const [currentLinePair, setCurrentLinePair] = useState({ crossing: null, direction: null, type: null });
   const [rois, setRois] = useState([]);
-  const [drawing, setDrawing] = useState(false);
   const [currentShape, setCurrentShape] = useState([]);
-  const [uploadedImage, setUploadedImage] = useState(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const canvasRef = useRef(null);
-  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
-  const isWeb = Platform.OS === 'web';
-  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-  const imageRef = useRef(null);
-  const API_URL = Platform.OS === 'android' 
-  ? "http://10.0.2.2:3000" 
-  : "http://localhost:3000"
+  const [drawing, setDrawing] = useState(false);
+  const [currentLinePair, setCurrentLinePair] = useState({ crossing: null, direction: null, type: null });
+  
+  // ROI specific state
+  const [roiType, setRoiType] = useState('Presença');
+  const [isDrawingROI, setIsDrawingROI] = useState(false);
+  const [roiPoints, setRoiPoints] = useState([]);
+  const [tempROI, setTempROI] = useState(null);
+  const [showRoiModal, setShowRoiModal] = useState(false);
 
+  // Line modal state
+  const [showLineModal, setShowLineModal] = useState(false);
+  const [tempLine, setTempLine] = useState(null);
+
+  // Image and canvas state
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
+  const canvasRef = useRef(null);
+  const isWeb = Platform.OS === 'web';
+
+  const API_URL = Platform.OS === 'android' 
+    ? "http://10.0.2.2:3000" 
+    : "http://localhost:3000";
+
+  // Handle window resizing
   useEffect(() => {
     if (isWeb) {
       const handleResize = () => {
@@ -53,169 +74,245 @@ export default function CameraRegistration({ navigation, route}) {
           height: window.innerHeight
         });
       };
-      
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
     }
   }, []);
 
-  const canvasToImageCoordinates = (point) => {
-    if (!canvasRef.current || !imageSize.width || !imageSize.height) return point;
-    
-    const canvas = canvasRef.current;
-    const scaleX = imageSize.width / canvas.width;
-    const scaleY = imageSize.height / canvas.height;
-    
-    return {
-      x: Math.round(point.x * scaleX),
-      y: Math.round(point.y * scaleY)
-    };
-  };
-
-  const imageToCanvasCoordinates = (point) => {
-    if (!canvasRef.current || !imageSize.width || !imageSize.height) return point;
-    
-    const canvas = canvasRef.current;
-    const scaleX = canvas.width / imageSize.width;
-    const scaleY = canvas.height / imageSize.height;
-    
-    return {
-      x: Math.round(point.x * scaleX),
-      y: Math.round(point.y * scaleY)
-    };
-  };
-
-  const getBase64FromUri = async (uri) => {
-    if (Platform.OS === 'web') {
-      try {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } catch (error) {
-        console.error('Error converting image to base64:', error);
-        throw error;
-      }
-    } else {
-
-      try {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } catch (error) {
-        console.error('Error converting image to base64:', error);
-        throw error;
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (camera_id) {
-        axios.get(`${API_URL}/cameras/${camera_id}`)
-            .then(response => {
-                setCameraInfo(response.data);
-                setUploadedImage(response.data.imageData)
-                setImageLoaded(true);
-                setImageSize(response.data.imageSize);
-            })
-            .catch(error => {
-                console.error("Erro ao buscar dados da camera:", error);
-            });
-    }
-}, [camera_id]);
-
+  // Handle canvas resizing
   useEffect(() => {
     if (canvasRef.current && isWeb && imageLoaded) {
-      const ctx = canvasRef.current.getContext('2d');
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      const { width, height } = getCanvasDimensions();
+      canvasRef.current.width = width;
+      canvasRef.current.height = height;
+    }
+  }, [dimensions, imageLoaded]);
 
-      linePairs.forEach(pair => {
-        const crossingStart = imageToCanvasCoordinates(pair.crossing[0]);
-        const crossingEnd = imageToCanvasCoordinates(pair.crossing[1]);
-        const directionStart = imageToCanvasCoordinates(pair.direction[0]);
-        const directionEnd = imageToCanvasCoordinates(pair.direction[1]);
+  const backendToUIType = {
+    'youtube_video': 'YouTube Video',
+    'youtube_stream': 'YouTube Stream',
+    'ip_camera': 'IP Camera'
+  };
 
-        ctx.beginPath();
-        ctx.moveTo(crossingStart.x, crossingStart.y);
-        ctx.lineTo(crossingEnd.x, crossingEnd.y);
-        ctx.strokeStyle = '#FF0000';
-        ctx.lineWidth = 3;
-        ctx.stroke();
+  // Load camera data if editing
+  useEffect(() => {
+      if (camera_id) {
+        axios.get(`${API_URL}/cameras/${camera_id}`)
+          .then(response => {
+            console.log('Camera data:', response.data);
+            // Transform the type from backend format to UI format
+            const uiType = backendToUIType[response.data.type] || '';
+            setCameraInfo({
+              ...response.data,
+              type: uiType  // Use the mapped UI type
+            });
+            setUploadedImage(response.data.imageData);
+            setImageLoaded(true);
+            setImageSize(response.data.imageSize);
+            
+            if (response.data.linePairs) {
+              setLinePairs(response.data.linePairs);
+            }
+            
+            if (response.data.rois) {
+              setRois(response.data.rois);
+            }
+          })
+          .catch(error => {
+            console.error("Error fetching camera data:", error);
+          });
+      }
+  }, [camera_id]);
 
-        ctx.beginPath();
-        ctx.moveTo(directionStart.x, directionStart.y);
-        ctx.lineTo(directionEnd.x, directionEnd.y);
-        ctx.strokeStyle = '#FFFF00';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        const angle = Math.atan2(
-          directionEnd.y - directionStart.y,
-          directionEnd.x - directionStart.x
-        );
-        const arrowLength = 20;
-        const arrowAngle = Math.PI / 6;
-
-        ctx.beginPath();
-        ctx.moveTo(directionEnd.x, directionEnd.y);
-        ctx.lineTo(
-          directionEnd.x - arrowLength * Math.cos(angle - arrowAngle),
-          directionEnd.y - arrowLength * Math.sin(angle - arrowAngle)
-        );
-        ctx.moveTo(directionEnd.x, directionEnd.y);
-        ctx.lineTo(
-          directionEnd.x - arrowLength * Math.cos(angle + arrowAngle),
-          directionEnd.y - arrowLength * Math.sin(angle + arrowAngle)
-        );
-        ctx.strokeStyle = '#FFFF00';
-        ctx.stroke();
-      });
+  const handleSave = useCallback(async () => {
+    if (!cameraInfo.name || !cameraInfo.location || !cameraInfo.address || !cameraInfo.type) {
+      const message = "Por favor, preencha todos os campos obrigatórios (nome, local, endereço e tipo).";
+      isWeb ? window.alert("Campos obrigatórios", message) : Alert.alert("Campos obrigatórios", message);
+      return;
+    }
+  
+    if (!uploadedImage || !imageSize.width || !imageSize.height || !cameraInfo.imageData) {
+      const message = "Por favor, faça upload de uma imagem antes de salvar.";
+      isWeb ? window.alert("Imagem necessária", message) : Alert.alert("Imagem necessária", message);
+      return;
+    }
+  
+    const typeMapping = {
+      'YouTube Video': 'youtube_video',
+      'YouTube Stream': 'youtube_stream',
+      'IP Camera': 'ip_camera'
+    };
+  
+    try {
+      const cameraData = {
+        id: cameraInfo.id,
+        name: cameraInfo.name,
+        location: cameraInfo.location,
+        address: cameraInfo.address,
+        type: typeMapping[cameraInfo.type],
+        imageSize: {
+          width: imageSize.width,
+          height: imageSize.height
+        },
+        imageData: cameraInfo.imageData,
+        linePairs: linePairs.map(pair => ({
+          crossing: [
+            { x: pair.crossing[0].x, y: pair.crossing[0].y },
+            { x: pair.crossing[1].x, y: pair.crossing[1].y }
+          ],
+          direction: [
+            { x: pair.direction[0].x, y: pair.direction[0].y },
+            { x: pair.direction[1].x, y: pair.direction[1].y }
+          ],
+          type: pair.type || 'Contagem',
+          name: pair.name // Make sure name exists
+        })),
+        rois: rois.map(roi => ({
+          points: roi.points,
+          name: roi.name,
+          type: roi.type
+        }))
+      };
       
-      rois.forEach(roi => {
-        const canvasRoi = roi.map(point => imageToCanvasCoordinates(point));
-        ctx.beginPath();
-        ctx.moveTo(canvasRoi[0].x, canvasRoi[0].y);
-        canvasRoi.forEach(point => ctx.lineTo(point.x, point.y));
-        ctx.closePath();
-        ctx.strokeStyle = '#00FF00';
-        ctx.lineWidth = 3;
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
-        ctx.fill();
-        ctx.stroke();
-      });
+      await saveCameraData(cameraData);
       
-      if (currentShape.length > 0) {
-        const canvasShape = currentShape.map(point => imageToCanvasCoordinates(point));
-        ctx.beginPath();
-        ctx.moveTo(canvasShape[0].x, canvasShape[0].y);
-        canvasShape.forEach(point => ctx.lineTo(point.x, point.y));
-        if (mode === 'ROI') ctx.closePath();
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 3;
-        ctx.stroke();
+      const successMessage = "Câmera cadastrada com sucesso!";
+      const handleSuccess = () => {
+        setCameraInfo({
+          name: '',
+          location: '',
+          address: '',
+          type: '',
+          imageData: null
+        });
+        setLinePairs([]);
+        setRois([]);
+        setUploadedImage(null);
+        setImageLoaded(false);
+        setImageSize({ width: 0, height: 0 });
+        navigation.navigate('CamerasList');
+      };
+
+      if (isWeb) {
+        window.alert("Sucesso", successMessage);
+        handleSuccess();
+      } else {
+        Alert.alert("Sucesso", successMessage, [{ text: "OK", onPress: handleSuccess }]);
+      }
+    } catch (error) {
+      console.log(error);
+      const errorMessage = error.message || "Ocorreu um erro ao salvar a câmera. Tente novamente.";
+      isWeb ? window.alert("Erro aqui", errorMessage) : Alert.alert("Erro", errorMessage);
+    }
+  }, [
+    cameraInfo, uploadedImage, imageSize, linePairs, rois,
+    isWeb, navigation, setLinePairs, setRois, setUploadedImage, setImageLoaded
+  ]);
+
+  const getInfoText = useCallback(() => {
+    if (mode === 'LINE') {
+      if (!currentLinePair.crossing) {
+        return 'Desenhe a linha de cruzamento (deve ser perpendicular à linha de direção)';
+      }
+      return 'Desenhe a linha de direção (deve ser paralela à linha de cruzamento)';
+    }
+    if (isDrawingROI) {
+      return 'Clique para adicionar pontos ao polígono. Clique próximo ao ponto inicial para fechar.';
+    }
+    return 'Clique para começar a desenhar uma região de interesse';
+  }, [mode, currentLinePair, isDrawingROI]);
+
+  const imageToCanvasCoordinates = (point) => {
+    if (!canvasRef.current || !imageSize.width || !imageSize.height) {
+      console.log('Missing ref or dimensions:', { ref: !!canvasRef.current, imageSize });
+      return point;
+    }
+    
+    const canvas = canvasRef.current;
+    const { width: canvasWidth, height: canvasHeight } = getCanvasDimensions();
+    
+    if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+    }
+    
+    const scaleX = canvasWidth / imageSize.width;
+    const scaleY = canvasHeight / imageSize.height;
+    
+    return {
+      x: Math.round(point.x * scaleX),
+      y: Math.round(point.y * scaleY)
+    };
+  };
+
+  const saveCameraData = async (cameraData) => {
+    const response = await fetch(`${API_URL}/cameras/${cameraData.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(cameraData)
+    });
+  
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Erro ao salvar a câmera');
+    }
+  
+    return response.json();
+  };
+
+  const canvasToImageCoordinates = (point) => {
+    if (!canvasRef.current || !imageSize.width || !imageSize.height) {
+      console.log('Missing ref or dimensions:', { ref: !!canvasRef.current, imageSize });
+      return point;
+    }
+    
+    const canvas = canvasRef.current;
+    const { width: canvasWidth, height: canvasHeight } = getCanvasDimensions();
+    
+    if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+    }
+    
+    const scaleX = imageSize.width / canvasWidth;
+    const scaleY = imageSize.height / canvasHeight;
+    
+    return {
+      x: Math.round(point.x * scaleX),
+      y: Math.round(point.y * scaleY)
+    };
+  };
+
+  // Drawing handlers
+  const handleROIClick = (point) => {
+    if (!isDrawingROI) {
+      setIsDrawingROI(true);
+      setRoiPoints([point]);
+    } else {
+      const startPoint = roiPoints[0];
+      const distance = Math.sqrt(
+        Math.pow(point.x - startPoint.x, 2) + 
+        Math.pow(point.y - startPoint.y, 2)
+      );
+
+      if (distance < 20 && roiPoints.length >= 3) {
+        setTempROI([...roiPoints]);
+        setShowRoiModal(true);
+        setRoiPoints([]);
+        setIsDrawingROI(false);
+      } else {
+        setRoiPoints([...roiPoints, point]);
       }
     }
-  }, [linePairs, currentLinePair, rois, currentShape, mode, imageLoaded]);
+  };
+
   const handleStartDrawing = (event) => {
     if (!drawing && uploadedImage) {
       if (mode === 'LINE' && !lineType) {
-        if (isWeb) {
-          window.alert("Por favor, selecione o tipo de linha antes de desenhar.");
-        } else {
-          Alert.alert(
-            "Tipo de linha necessário",
-            "Por favor, selecione o tipo de linha antes de desenhar."
-          );
-        }
+        const message = "Por favor, selecione o tipo de linha antes de desenhar.";
+        isWeb ? window.alert(message) : Alert.alert("Tipo de linha necessário", message);
         return;
       }
       const canvasPoint = getPointFromEvent(event);
@@ -231,139 +328,9 @@ export default function CameraRegistration({ navigation, route}) {
       const imagePoint = canvasToImageCoordinates(canvasPoint);
       
       if (mode === 'LINE') {
-        setCurrentShape([currentShape[0], imagePoint]);
+        setCurrentShape(prevShape => prevShape.length > 0 ? [prevShape[0], imagePoint] : [imagePoint]);
       } else if (mode === 'ROI') {
-        setCurrentShape([...currentShape, imagePoint]);
-      }
-    }
-  };
-
-  const handleSave = async () => {
-    const isWeb = Platform.OS === 'web';
-    
-    if (!cameraInfo.name || !cameraInfo.location || !cameraInfo.address || !cameraInfo.type) {
-      if (isWeb) {
-        window.alert("Por favor, preencha todos os campos obrigatórios (nome, local, endereço e tipo).");
-      } else {
-        Alert.alert(
-          "Campos obrigatórios",
-          "Por favor, preencha todos os campos obrigatórios (nome, local, endereço e tipo)."
-        );
-      }
-      return;
-    }
-  
-    if (!uploadedImage || !imageSize.width || !imageSize.height || !cameraInfo.imageData) {
-      if (isWeb) {
-        window.alert("Por favor, faça upload de uma imagem antes de salvar.");
-      } else {
-        Alert.alert(
-          "Imagem necessária",
-          "Por favor, faça upload de uma imagem antes de salvar."
-        );
-      }
-      return;
-    }
-  
-    const typeMapping = {
-      'YouTube Video': 'youtube_video',
-      'YouTube Stream': 'youtube_stream',
-      'IP Camera': 'ip_camera'
-    };
-  
-    try {
-      const response = await fetch(camera_id?`${API_URL}/cameras/${camera_id}`:`${API_URL}/cameras`,{
-        method: camera_id?'PUT':'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: cameraInfo.name,
-          location: cameraInfo.location,
-          address: cameraInfo.address,
-          type: typeMapping[cameraInfo.type],
-          imageSize: {
-            width: imageSize.width,
-            height: imageSize.height
-          },
-          imageData: cameraInfo.imageData,
-          linePairs: linePairs.map(pair => ({
-            crossing: [
-              { x: pair.crossing[0].x, y: pair.crossing[0].y },
-              { x: pair.crossing[1].x, y: pair.crossing[1].y }
-            ],
-            direction: [
-              { x: pair.direction[0].x, y: pair.direction[0].y },
-              { x: pair.direction[1].x, y: pair.direction[1].y }
-            ],
-            type: pair.type 
-          })),
-          rois: rois
-        })
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao salvar a câmera');
-      }
-  
-      const data = await response.json();
-      
-      if (isWeb) {
-        if(camera_id){
-            window.alert("Câmera atualizada com sucesso!");
-        } else {
-            window.alert("Câmera cadastrada com sucesso!");
-        }
-        setCameraInfo({
-          name: '',
-          location: '',
-          address: '',
-          type: '',
-          imageData: null
-        });
-        setLinePairs([]);
-        setRois([]);
-        setUploadedImage(null);
-        setImageLoaded(false);
-        setImageSize({ width: 0, height: 0 });
-        navigation.navigate('Home');
-      } else {
-        Alert.alert(
-          "Sucesso",
-          "Câmera cadastrada com sucesso!",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                setCameraInfo({
-                  name: '',
-                  location: '',
-                  address: '',
-                  type: '',
-                  imageData: null
-                });
-                setLinePairs([]);
-                setRois([]);
-                setUploadedImage(null);
-                setImageLoaded(false);
-                setImageSize({ width: 0, height: 0 });
-                navigation.navigate('Home');
-              }
-            }
-          ]
-        );
-      }
-  
-    } catch (error) {
-      if (isWeb) {
-        window.alert(error.message || "Ocorreu um erro ao salvar a câmera. Tente novamente.");
-      } else {
-        Alert.alert(
-          "Erro",
-          error.message || "Ocorreu um erro ao salvar a câmera. Tente novamente.",
-          [{ text: "OK" }]
-        );
+        setCurrentShape(prevShape => [...prevShape, imagePoint]);
       }
     }
   };
@@ -372,50 +339,150 @@ export default function CameraRegistration({ navigation, route}) {
     if (drawing) {
       if (mode === 'LINE' && currentShape.length === 2) {
         if (!currentLinePair.crossing) {
-          setCurrentLinePair({ ...currentLinePair, crossing: currentShape, type: lineType });
+          setCurrentLinePair({
+            crossing: currentShape,
+            direction: null,
+            type: lineType
+          });
         } else {
-          setLinePairs([...linePairs, {
+          setTempLine({
             crossing: currentLinePair.crossing,
             direction: currentShape,
-            type: currentLinePair.type
-          }]);
-          setCurrentLinePair({ crossing: null, direction: null });
+            type: lineType
+          });
+          setShowLineModal(true);
         }
-      } else if (mode === 'ROI' && currentShape.length >= 3) {
-        setRois([...rois, currentShape]);
       }
       setCurrentShape([]);
       setDrawing(false);
     }
   };
 
+  const handleLineSave = (data) => {
+    if (tempLine && data.name) {
+      setLinePairs([...linePairs, {
+        ...tempLine,
+        name: data.name,
+        type: data.type || lineType
+      }]);
+      setTempLine(null);
+      setCurrentLinePair({ crossing: null, direction: null, type: null });
+    }
+    setShowLineModal(false);
+  };
+
+  const handleROISave = (data) => {
+    if (tempROI && data.name) {
+      setRois([...rois, {
+        points: tempROI,
+        name: data.name,
+        type: data.type || roiType
+      }]);
+      setTempROI(null);
+    }
+    setShowRoiModal(false);
+  };
+
+  const handleUndo = () => {
+    if (mode === 'LINE') {
+      if (currentLinePair.crossing) {
+        setCurrentLinePair({ crossing: null, direction: null, type: null });
+      } else if (linePairs.length > 0) {
+        setLinePairs(prev => prev.slice(0, -1));
+      }
+    } else if (mode === 'ROI') {
+      if (roiPoints.length > 0) {
+        setRoiPoints(prev => prev.slice(0, -1));
+        if (roiPoints.length === 1) {
+          setIsDrawingROI(false);
+        }
+      } else if (rois.length > 0) {
+        setRois(prev => prev.slice(0, -1));
+      }
+    }
+    setCurrentShape([]);
+  };
+
+  const handleReset = () => {
+    setLinePairs([]);
+    setCurrentLinePair({ crossing: null, direction: null, type: null });
+    setRois([]);
+    setRoiPoints([]);
+    setIsDrawingROI(false);
+    setCurrentShape([]);
+    setDrawing(false);
+  };
+
+  // Canvas and image handling
+  useCanvas({
+    canvasRef,
+    linePairs,
+    rois,
+    currentShape,
+    mode,
+    imageLoaded,
+    imageToCanvasCoordinates,
+    roiPoints,
+    isDrawingROI,
+    currentLinePair
+  });
+
+  const getCanvasDimensions = () => {
+    if (isWeb) {
+      const maxWidth = Math.min(dimensions.width * 0.9, 800);
+      const maxHeight = maxWidth * 9 / 16;
+      return { width: maxWidth, height: maxHeight };
+    }
+    return {
+      width: dimensions.width * 0.9,
+      height: (dimensions.width * 0.9) * 9 / 16
+    };
+  };
+
+  const getPointFromEvent = (event) => {
+    if (!canvasRef.current) return { x: 0, y: 0 };
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+  };
+
+  const handleCanvasClick = (event) => {
+    if (mode === 'ROI') {
+      const canvasPoint = getPointFromEvent(event);
+      const imagePoint = canvasToImageCoordinates(canvasPoint);
+      handleROIClick(imagePoint);
+    }
+  };
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
     if (status !== 'granted') {
-      alert('Sorry, we need camera roll permissions to make this work!');
+      Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to make this work!');
       return;
     }
-  
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [16, 9],
       quality: 1,
     });
-  
+
     if (!result.canceled) {
       try {
         const base64Image = await getBase64FromUri(result.assets[0].uri);
-        
-        setUploadedImage(result.assets[0].uri); 
+        setUploadedImage(result.assets[0].uri);
         setImageLoaded(false);
         
         setCameraInfo(prev => ({
           ...prev,
           imageData: base64Image
         }));
-        
+
         if (Platform.OS === 'web') {
           const img = document.createElement('img');
           img.onload = () => {
@@ -430,77 +497,46 @@ export default function CameraRegistration({ navigation, route}) {
           Image.getSize(result.assets[0].uri, (width, height) => {
             setImageSize({ width, height });
             setImageLoaded(true);
-          }, (error) => {
-            console.error('Error getting image size:', error);
-            setImageLoaded(true);
           });
         }
       } catch (error) {
-        Alert.alert(
-          "Erro",
-          "Não foi possível processar a imagem. Por favor, tente novamente.",
-          [{ text: "OK" }]
-        );
+        Alert.alert('Error', 'Could not process the image. Please try again.');
       }
     }
   };
 
-  const getPointFromEvent = (event) => {
-    if (!canvasRef.current) return { x: 0, y: 0 };
-    
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
-    };
-  };
-
-  const handleUndo = () => {
-    if (mode === 'LINE') {
-      if (currentLinePair.crossing) {
-        setCurrentLinePair({ crossing: null, direction: null, type: null });
-      } else if (linePairs.length > 0) {
-        setLinePairs(linePairs.slice(0, -1));
-      }
-    } else if (mode === 'ROI' && rois.length > 0) {
-      setRois(rois.slice(0, -1));
+  const getBase64FromUri = async (uri) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error converting image to base64:', error);
+      throw error;
     }
-  };
-
-  const handleReset = () => {
-    setLinePairs([]);
-    setCurrentLinePair({ crossing: null, direction: null, type: null });
-    setRois([]);
-    setCurrentShape([]);
-    setDrawing(false);
-  };
-
-  const getCanvasDimensions = () => {
-    if (isWeb) {
-      const maxWidth = Math.min(dimensions.width * 0.9, 800);
-      const maxHeight = maxWidth * 9 / 16;
-      return { width: maxWidth, height: maxHeight };
-    }
-    return {
-      width: dimensions.width * 0.9,
-      height: (dimensions.width * 0.9) * 9 / 16
-    };
   };
 
   const renderImageSection = () => {
     const { width, height } = getCanvasDimensions();
 
-    if (isWeb) {
-      return (
-        <View style={[styles.imageContainer, { width, height }]}>
-          {uploadedImage ? (
-            <>
-              <Image
-                source={{ uri: uploadedImage }}
-                style={styles.image}
-                onLoad={() => setImageLoaded(true)}
-              />
+    return (
+      <View style={[styles.imageContainer, { width, height }]}>
+        {uploadedImage ? (
+          <View style={{ width: '100%', height: '100%', position: 'relative' }}>
+            <Image
+              source={{ uri: uploadedImage }}
+              style={[styles.image]}
+              onLoad={() => {
+                console.log('Image loaded in view');
+                setImageLoaded(true);
+              }}
+            />
+            {isWeb && (
               <canvas
                 ref={canvasRef}
                 width={width}
@@ -510,71 +546,44 @@ export default function CameraRegistration({ navigation, route}) {
                   top: 0,
                   left: 0,
                   cursor: 'crosshair',
+                  zIndex: 1,
+                  background: 'transparent'
                 }}
+                onClick={handleCanvasClick}
                 onMouseDown={handleStartDrawing}
                 onMouseMove={handleDrawing}
                 onMouseUp={handleEndDrawing}
                 onMouseLeave={handleEndDrawing}
               />
-            </>
-          ) : (
-            <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-              <Ionicons name="cloud-upload-outline" size={40} color="#FFFFFF" />
-              <Text style={styles.uploadText}>Clique para enviar uma imagem de fundo</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      );
-    } else {
-      return (
-        <View style={[styles.imageContainer, { width, height }]}>
-          <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-            {uploadedImage ? (
-              <Image source={{ uri: uploadedImage }} style={styles.image} />
-            ) : (
-              <>
-                <Ionicons name="cloud-upload-outline" size={40} color="#FFFFFF" />
-                <Text style={styles.uploadText}>Tap to upload image</Text>
-              </>
             )}
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+            <Ionicons name="cloud-upload-outline" size={40} color="#FFFFFF" />
+            <Text style={styles.uploadText}>Clique para enviar uma imagem de fundo</Text>
           </TouchableOpacity>
-        </View>
-      );
-    }
-  };
-
-  const getInfoText = () => {
-    if (mode === 'LINE') {
-      if (!currentLinePair.crossing) {
-        return 'Desenhe a linha de cruzamento (deve ser perpendicular à linha de direção)';
-      }
-      return 'Desenhe a linha de direção (deve ser paralela à linha de cruzamento)';
-    }
-    return 'Desenhe a região de interesse (clique para adicionar pontos e feche a forma)';
+        )}
+      </View>
+    );
   };
 
   return (
-    <View style={[styles.container, isWeb && styles.webContainer]}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          style={isWeb ? { height: 'calc(100vh - 60px)' } : { flex: 1 }} 
-        >
+    <View style={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        style={isWeb ? { height: 'calc(100vh - 60px)' } : { flex: 1 }}
+      >
         <View style={styles.form}>
           <View style={styles.headerContainer}>
             <Ionicons name="videocam-outline" size={32} color="#C26015" />
-            <Text style={styles.title}>Atualizar Camera Cadastrada</Text>
+            <Text style={styles.title}>
+              {camera_id ? 'Update Camera' : 'Register Camera'}
+            </Text>
           </View>
-          <TouchableOpacity 
-            style={styles.helpButton}
-            onPress={() => navigation.navigate('HelpGuide')} 
-          >
-            <Ionicons name="help-circle-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.helpButtonText}>Ajuda</Text>
-          </TouchableOpacity>
 
           <TextInput
             style={styles.input}
-            placeholder="Nome da câmera"
+            placeholder="Camera Name"
             placeholderTextColor="#999"
             value={cameraInfo.name}
             onChangeText={(text) => setCameraInfo({ ...cameraInfo, name: text })}
@@ -582,7 +591,7 @@ export default function CameraRegistration({ navigation, route}) {
 
           <TextInput
             style={styles.input}
-            placeholder="Local"
+            placeholder="Location"
             placeholderTextColor="#999"
             value={cameraInfo.location}
             onChangeText={(text) => setCameraInfo({ ...cameraInfo, location: text })}
@@ -590,7 +599,7 @@ export default function CameraRegistration({ navigation, route}) {
 
           <TextInput
             style={styles.input}
-            placeholder="Endereço (IP ou URL)"
+            placeholder="Address (IP or URL)"
             placeholderTextColor="#999"
             value={cameraInfo.address}
             onChangeText={(text) => setCameraInfo({ ...cameraInfo, address: text })}
@@ -598,33 +607,18 @@ export default function CameraRegistration({ navigation, route}) {
 
           <Text style={styles.typeLabel}>Tipo de midia</Text>
           <View style={styles.toolbar}>
-            <TouchableOpacity 
-              style={[
-                styles.toolButton,
-                cameraInfo.type === 'YouTube Video' && styles.activeToolButton
-              ]}
-              onPress={() => setCameraInfo({ ...cameraInfo, type: 'YouTube Video' })}
-            >
-              <Text style={styles.toolButtonText}>YouTube Video</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[
-                styles.toolButton,
-                cameraInfo.type === 'YouTube Stream' && styles.activeToolButton
-              ]}
-              onPress={() => setCameraInfo({ ...cameraInfo, type: 'YouTube Stream' })}
-            >
-              <Text style={styles.toolButtonText}>YouTube Stream</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[
-                styles.toolButton,
-                cameraInfo.type === 'IP Camera' && styles.activeToolButton
-              ]}
-              onPress={() => setCameraInfo({ ...cameraInfo, type: 'IP Camera' })}
-            >
-              <Text style={styles.toolButtonText}>IP Camera</Text>
-            </TouchableOpacity>
+            {['YouTube Video', 'YouTube Stream', 'IP Camera'].map((type) => (
+              <TouchableOpacity 
+                key={type}
+                style={[
+                  styles.toolButton,
+                  cameraInfo.type === type && styles.activeToolButton
+                ]}
+                onPress={() => setCameraInfo({ ...cameraInfo, type })}
+              >
+                <Text style={styles.toolButtonText}>{type}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           {renderImageSection()}
@@ -642,60 +636,70 @@ export default function CameraRegistration({ navigation, route}) {
             >
               <Text style={styles.toolButtonText}>Região de interesse</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.toolButton} onPress={handleUndo}>
+            <TouchableOpacity 
+              style={styles.toolButton} 
+              onPress={handleUndo}
+            >
               <Text style={styles.toolButtonText}>Desfazer</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.toolButton} onPress={handleReset}>
+            <TouchableOpacity 
+              style={styles.toolButton} 
+              onPress={handleReset}
+            >
               <Text style={styles.toolButtonText}>Limpar</Text>
             </TouchableOpacity>
           </View>
 
-          {mode === 'LINE' && (
-            <>
-              <Text style={styles.typeLabel}>
-                {!lineType ? 'Selecione o tipo de ação que a linha irá realizar.' : 'Tipo de linha selecionado: ' + lineType}
-              </Text>
-              <View style={styles.toolbar}>
-                <TouchableOpacity
-                  style={[
-                    styles.toolButton,
-                    lineType === 'Contagem' && styles.activeToolButton
-                  ]}
-                  onPress={() => setLineType('Contagem')}
-                >
-                  <Text style={styles.toolButtonText}>Contagem</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.toolButton,
-                    lineType === 'Conversão proibida' && styles.activeToolButton
-                  ]}
-                  onPress={() => setLineType('Conversão proibida')}
-                >
-                  <Text style={styles.toolButtonText}>Conversão proibida</Text>
-                </TouchableOpacity>
-              </View>
-            </>
+          {/* {mode === 'LINE' && (
+            <LineTypeSelector lineType={lineType} setLineType={setLineType} />
           )}
 
-          <View style={styles.infoContainer}>
-            <Text style={styles.infoText}>{getInfoText()}</Text>
-            <Text style={styles.infoText}>
-              Pares de linhas criados: {linePairs.length} | Regiões de interesse criadas: {rois.length}
-            </Text>
-          </View>
+          {mode === 'ROI' && (
+            <ROITypeSelector roiType={roiType} setRoiType={setRoiType} />
+          )} */}
 
+          <InfoSection 
+            mode={mode}
+            currentLinePair={currentLinePair}
+            linePairs={linePairs}
+            rois={rois}
+            isDrawingROI={isDrawingROI}
+            roiPoints={roiPoints}
+            infoText={getInfoText()}
+          />
           <TouchableOpacity
             style={styles.saveButton}
             onPress={handleSave}
           >
-            <Ionicons name="save-outline" size={24} color="#FFFFFF" style={styles.buttonIcon} />
+            <Ionicons name="save-outline" size={24} color="#FFFFFF" />
             <Text style={styles.saveButtonText}>Salvar configuração</Text>
           </TouchableOpacity>
-          </View>
-        </ScrollView>
-        <Navbar navigation={navigation} />
-      </View>
+        </View>
+      </ScrollView>
+
+      <LineInputModal
+        visible={showLineModal}
+        onClose={() => {
+          setShowLineModal(false);
+          setTempLine(null);
+          setCurrentLinePair({ crossing: null, direction: null, type: null });
+        }}
+        onSave={handleLineSave}
+        initialType={lineType}
+      />
+
+      <ROIInputModal
+        visible={showRoiModal}
+        onClose={() => {
+          setShowRoiModal(false);
+          setTempROI(null);
+        }}
+        onSave={handleROISave}
+        initialType={roiType}
+      />
+
+      <Navbar navigation={navigation} />
+    </View>
   );
 }
 
@@ -715,18 +719,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     paddingBottom: 90,
-    ...(Platform.OS === 'web' && {
-      width: '100%',
-    }),
   },
   form: {
     width: '90%',
     maxWidth: 800,
     alignItems: 'center',
     padding: 20,
-    ...(Platform.OS === 'web' && {
-      marginBottom: 60,  
-    }),
   },
   headerContainer: {
     flexDirection: 'row',
@@ -765,6 +763,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   uploadButton: {
     width: '100%',
@@ -784,20 +785,48 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 20,
     width: '100%',
+    paddingHorizontal: 20,
   },
   toolButton: {
     backgroundColor: '#2A2A2A',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
     minWidth: 100,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3E3E3E',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+    }),
   },
   activeToolButton: {
     backgroundColor: '#4A90E2',
+    borderColor: '#5C9EE6',
+    elevation: 3,
+    shadowColor: '#4A90E2',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 2.41,
   },
   toolButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '500',
+    ...(Platform.OS === 'web' && {
+      userSelect: 'none',
+    }),
   },
   infoContainer: {
     width: '100%',
@@ -821,26 +850,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+    marginTop: 20,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+    }),
   },
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  helpButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2A2A2A',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 20,
-    gap: 8,
-  },
-  helpButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    ...(Platform.OS === 'web' && {
+      userSelect: 'none',
+    }),
   },
 });
+
+// Add web-specific hover styles
+if (Platform.OS === 'web') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = `
+    .toolButton:hover {
+      background-color: #3A3A3A;
+      transform: translateY(-1px);
+    }
+    
+    .activeToolButton:hover {
+      background-color: #5C9EE6;
+    }
+    
+    .saveButton:hover {
+      background-color: #45A049;
+      transform: translateY(-1px);
+    }
+  `;
+  document.head.appendChild(styleSheet);
+}

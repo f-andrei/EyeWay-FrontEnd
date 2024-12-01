@@ -20,16 +20,11 @@ export const drawArrow = (ctx, start, end) => {
 };
 
 export const drawLinePair = (ctx, pair, imageToCanvasCoordinates) => {
-  // Check if pair has the required properties and points
-  if (!pair?.crossing?.length || !pair?.direction?.length) {
-    return;
-  }
+  if (!pair?.crossing?.length) return;
 
   try {
     const crossingStart = imageToCanvasCoordinates(pair.crossing[0]);
     const crossingEnd = imageToCanvasCoordinates(pair.crossing[1]);
-    const directionStart = imageToCanvasCoordinates(pair.direction[0]);
-    const directionEnd = imageToCanvasCoordinates(pair.direction[1]);
 
     // Draw crossing line
     ctx.beginPath();
@@ -39,16 +34,20 @@ export const drawLinePair = (ctx, pair, imageToCanvasCoordinates) => {
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Draw direction line
-    ctx.beginPath();
-    ctx.moveTo(directionStart.x, directionStart.y);
-    ctx.lineTo(directionEnd.x, directionEnd.y);
-    ctx.strokeStyle = '#FFFF00';
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    // Draw direction line and arrow if direction exists
+    if (pair?.direction?.length === 2) {
+      const directionStart = imageToCanvasCoordinates(pair.direction[0]);
+      const directionEnd = imageToCanvasCoordinates(pair.direction[1]);
 
-    // Draw arrow
-    drawArrow(ctx, directionStart, directionEnd);
+      ctx.beginPath();
+      ctx.moveTo(directionStart.x, directionStart.y);
+      ctx.lineTo(directionEnd.x, directionEnd.y);
+      ctx.strokeStyle = '#FFFF00';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      drawArrow(ctx, directionStart, directionEnd);
+    }
 
     // Draw name if it exists
     if (pair.name) {
@@ -65,18 +64,17 @@ export const drawLinePair = (ctx, pair, imageToCanvasCoordinates) => {
 };
 
 export const drawROI = (ctx, roi, imageToCanvasCoordinates) => {
-  // Check if roi has points property
   const points = roi.points || roi;
-  if (!Array.isArray(points) || points.length === 0) {
-    return;
-  }
+  if (!Array.isArray(points) || points.length < 3) return;
 
   try {
-    const canvasRoi = points.map(point => imageToCanvasCoordinates(point));
+    const canvasPoints = points.map(point => imageToCanvasCoordinates(point));
+    
     ctx.beginPath();
-    ctx.moveTo(canvasRoi[0].x, canvasRoi[0].y);
-    canvasRoi.forEach(point => ctx.lineTo(point.x, point.y));
+    ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y);
+    canvasPoints.forEach(point => ctx.lineTo(point.x, point.y));
     ctx.closePath();
+    
     ctx.strokeStyle = '#00FF00';
     ctx.lineWidth = 3;
     ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
@@ -85,8 +83,8 @@ export const drawROI = (ctx, roi, imageToCanvasCoordinates) => {
 
     // Draw name if it exists
     if (roi.name) {
-      const centerX = canvasRoi.reduce((sum, point) => sum + point.x, 0) / canvasRoi.length;
-      const centerY = canvasRoi.reduce((sum, point) => sum + point.y, 0) / canvasRoi.length;
+      const centerX = canvasPoints.reduce((sum, point) => sum + point.x, 0) / canvasPoints.length;
+      const centerY = canvasPoints.reduce((sum, point) => sum + point.y, 0) / canvasPoints.length;
       ctx.font = '14px Arial';
       ctx.fillStyle = '#FFFFFF';
       ctx.textAlign = 'center';
@@ -98,20 +96,18 @@ export const drawROI = (ctx, roi, imageToCanvasCoordinates) => {
 };
 
 export const drawROIPoints = (ctx, points, imageToCanvasCoordinates) => {
-  if (!Array.isArray(points) || points.length === 0) {
-    return;
-  }
+  if (!Array.isArray(points) || points.length === 0) return;
 
   try {
     const canvasPoints = points.map(point => imageToCanvasCoordinates(point));
     
-    // Draw lines between points
+    // Draw lines
     if (canvasPoints.length > 0) {
       ctx.beginPath();
       ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y);
       canvasPoints.forEach(point => ctx.lineTo(point.x, point.y));
       ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2;
       ctx.stroke();
     }
 
@@ -131,9 +127,7 @@ export const drawROIPoints = (ctx, points, imageToCanvasCoordinates) => {
 };
 
 export const drawCurrentShape = (ctx, currentShape, mode, imageToCanvasCoordinates) => {
-  if (!Array.isArray(currentShape) || currentShape.length === 0) {
-    return;
-  }
+  if (!Array.isArray(currentShape) || currentShape.length === 0) return;
 
   try {
     const canvasShape = currentShape.map(point => imageToCanvasCoordinates(point));
@@ -142,8 +136,21 @@ export const drawCurrentShape = (ctx, currentShape, mode, imageToCanvasCoordinat
     canvasShape.forEach(point => ctx.lineTo(point.x, point.y));
     if (mode === 'ROI') ctx.closePath();
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2;
     ctx.stroke();
+
+    // Draw points for ROI mode
+    if (mode === 'ROI') {
+      canvasShape.forEach(point => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+    }
   } catch (error) {
     console.error('Error drawing current shape:', error);
   }
