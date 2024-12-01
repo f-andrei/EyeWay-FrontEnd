@@ -99,7 +99,6 @@ export default function CameraRegistration({ navigation, route }) {
       if (camera_id) {
         axios.get(`${API_URL}/cameras/${camera_id}`)
           .then(response => {
-            console.log('Camera data:', response.data);
             // Transform the type from backend format to UI format
             const uiType = backendToUIType[response.data.type] || '';
             setCameraInfo({

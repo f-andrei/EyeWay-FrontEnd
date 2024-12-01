@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useStore } from '../store/globalStore';
 import axios from 'axios';
-import { Picker } from '@react-native-picker/picker';
+// import { Picker } from '@react-native-picker/picker';
 
 
 import Navbar from '../components/Navbar';
@@ -199,7 +199,7 @@ export default function Operation({ navigation }) {
                     <Text style={estilos.textInput}>Tipo da ocorrência:</Text>
 
                     <View style={estilos.pickerContainer}>
-                        <Picker
+                        {/* <Picker
                             selectedValue={tipoOcorrencia}
                             onValueChange={(itemValue) => setTipoOcorrencia(itemValue)}
                             style={Platform.OS === 'ios' ? estilos.pickerIOS : estilos.picker}
@@ -209,7 +209,7 @@ export default function Operation({ navigation }) {
                             {opcoesOcorrencia.map((opcao, index) => (
                                 <Picker.Item label={opcao} value={opcao} key={index} />
                             ))}
-                        </Picker>
+                        </Picker> */}
                     </View>
 
                     <Text style={estilos.textInput}> Observação:</Text>
