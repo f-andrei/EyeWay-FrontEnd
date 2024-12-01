@@ -6,7 +6,8 @@ import {
     Image,
     StyleSheet,
     TextInput,
-    Platform
+    Platform,
+    ScrollView,
 } from 'react-native';
 import { useStore } from '../store/globalStore';
 import axios from 'axios';
@@ -40,6 +41,7 @@ export default function Operation({ navigation }) {
         "estacionamento vaga 60+ sem carteirinha",
         "Estacionado na contra mão",
         "Estacionado em cima de calçada",
+        "Outro"
     ];
 
 
@@ -67,6 +69,12 @@ export default function Operation({ navigation }) {
                 justifyContent: 'center'
             }
         ]}>
+
+            <ScrollView 
+                contentContainerStyle={estilos.scrollViewContent}
+                keyboardShouldPersistTaps="handled"
+            >
+
             <View style={[
                 estilos.card,
                 Platform.OS === 'web' && {
@@ -204,6 +212,34 @@ export default function Operation({ navigation }) {
                         </Picker>
                     </View>
 
+                    <Text style={estilos.textInput}> Observação:</Text>
+
+                    <TextInput
+                        placeholder='Digite aqui a observação da ocorrência...'
+                        multiline={true}
+                        numberOfLines={10}
+                        style={[
+                            estilos.input,
+                            Platform.OS === 'web' && {
+                                backgroundColor: '#1E1E1E',
+                                borderColor: '#404040',
+                                borderWidth: 1,
+                                borderRadius: 8,
+                                padding: 12,
+                                marginBottom: 20,
+                                color: '#FFFFFF',
+                                outline: 'none',
+                                width: '100%',
+                                height: 100,
+                                textAlign: 'start',
+                                height: 200,
+                                textAlignVertical: 'top'
+                        }]}
+                        placeholderTextColor="#666"
+                        autoCapitalize="none"
+                        keyboardType="default"
+                    />
+
                     <Text style={estilos.textInput}>Enviar foto:</Text>
                     <TouchableOpacity style={estilos.buttonContainer} onPress={handleFoto}>
                         <Text style={estilos.buttonStyle}>Selecionar Foto</Text>
@@ -246,6 +282,7 @@ export default function Operation({ navigation }) {
                     </TouchableOpacity>
                 </View>
             </View>
+            </ScrollView>
             <Navbar navigation={navigation} />
         </View>
     );
@@ -352,5 +389,10 @@ const estilos = StyleSheet.create({
         borderRadius: 5,
         borderColor: '#404040',
         borderWidth: 1,
+    },
+    scrollViewContent: {
+        flexGrow: 1,
+        alignItems: 'center',
+        paddingBottom: Platform.OS === 'web' ? 20 : 70,
     },
 });
