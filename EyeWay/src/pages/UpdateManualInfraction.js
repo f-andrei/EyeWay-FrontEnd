@@ -82,7 +82,7 @@ export default function UpdateOperation({ route, navigation }) {
 
     const opcoesVeiculo = ["Carro", "Motocicleta", "Ônibus", "Caminhão"];
 
-    const opcoesStatus = ["Pendente", "Em análise", "Concluído", "Cancelado"];
+    const opcoesStatus = ["Pendente", "Verificado", "Alerta Falso"];
 
     useEffect(() => {
         const fetchInfractionData = async () => {
