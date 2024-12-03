@@ -15,7 +15,7 @@ import Perfil from '../pages/Perfil';
 import UpdateCamera from '../pages/UpdateCamera';
 import UpdatePerfil from '../pages/UpdatePerfil';
 import Operations from '../pages/Operations';
-import ManualInfractionsScreen from '../pages/ManualInfractions';
+import UpdateManualInfraction from '../pages/UpdateManualInfraction';
 
 const Stack = createStackNavigator();
 
@@ -43,7 +43,7 @@ export default function Navigation() {
         <Stack.Screen name='UpdateCamera' component={UpdateCamera} options={{ headerShown: false }} />
         <Stack.Screen name='UpdatePerfil' component={UpdatePerfil} options={{ headerShown: false }} />
         <Stack.Screen name='Operations' component={Operations} options={{ headerShown: false}} />
-        <Stack.Screen name='ManualInfractions' component={ManualInfractionsScreen} options={{ headerShown: false}} />
+        <Stack.Screen name='UpdateManualInfraction' component={UpdateManualInfraction} options={{ headerShown: false}} />
         </>
         
     )}
