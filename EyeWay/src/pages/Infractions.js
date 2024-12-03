@@ -179,7 +179,7 @@ export default function CombinedInfractions({ navigation }) {
                 status: manual.status,
                 timestamp: new Date(manual.date).getTime(),
                 image_base64: imageBase64,
-                camera_name: 'Manual Entry',
+                camera_name: 'Inserido manualmente',
                 isManual: true,
                 user: manual.user,
                 address: manual.adress,
