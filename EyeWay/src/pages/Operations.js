@@ -160,7 +160,7 @@ export default function Operation({ navigation }) {
                     infraction_type: '',
                     camera_id: -1
                 });
-                navigation.navigate('Infractions');
+                navigation.navigate('Manual Infractions');
             };
 
             if (isWeb) {
