@@ -175,6 +175,7 @@ export default function CameraRegistration({ navigation }) {
       setDrawing(false);
     }
   }, [drawing, mode, currentShape, currentLinePair, lineType, handleLineComplete, getPointFromEvent, canvasToImageCoordinates]);
+  
   const getInfoText = useCallback(() => {
     if (mode === 'LINE') {
       if (!currentLinePair.crossing) {
@@ -254,7 +255,7 @@ export default function CameraRegistration({ navigation }) {
         setUploadedImage(null);
         setImageLoaded(false);
         setImageSize({ width: 0, height: 0 });
-        navigation.navigate('CamerasList');
+        navigation.replace('CamerasList');
       };
 
       if (isWeb) {
@@ -307,20 +308,6 @@ export default function CameraRegistration({ navigation }) {
             handleUndo={handleUndo}
             handleReset={handleReset}
           />
-          
-          {/* Remove these selectors
-          {mode === 'LINE' ? (
-            <LineTypeSelector 
-              lineType={lineType}
-              setLineType={setLineType}
-            />
-          ) : (
-            <ROITypeSelector 
-              roiType={roiType}
-              setRoiType={setRoiType}
-            />
-          )}
-          */}
           
           <LineInputModal
             visible={showLineModal}
