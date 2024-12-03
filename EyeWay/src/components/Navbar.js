@@ -61,7 +61,7 @@ export default function Navbar({ navigation }) {
       </TouchableOpacity>
 
       <TouchableOpacity
-        onPress={() => navigation.navigate('Infractions')}
+        onPress={() => navigation.replace('Infractions')}
         style={[
           estilos.navItem,
           isWeb && estilos.webNavItem,
@@ -95,24 +95,6 @@ export default function Navbar({ navigation }) {
           isWeb && estilos.webNavTexto
         ]}>Operações</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => navigation.navigate('ManualInfractions')}
-        style={[
-          estilos.navItem,
-          isWeb && estilos.webNavItem,
-        ]}
-      >
-        <View style={estilos.webIconContainer}>
-        <AntDesign name="enviroment" size={isWeb ? 21:30} color="white" />
-        </View>
-        <Text style={[
-          estilos.navTexto,
-          isWeb && estilos.webNavTexto
-        ]}>Manual Infractions</Text>
-      </TouchableOpacity>
-
-
       <TouchableOpacity
         onPress={() => navigation.navigate('Statistics')}
         style={[
