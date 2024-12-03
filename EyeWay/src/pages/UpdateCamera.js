@@ -189,7 +189,7 @@ export default function CameraRegistration({ navigation, route }) {
         setUploadedImage(null);
         setImageLoaded(false);
         setImageSize({ width: 0, height: 0 });
-        navigation.navigate('CamerasList');
+        navigation.replace('CamerasList');
       };
 
       if (isWeb) {
@@ -576,7 +576,7 @@ export default function CameraRegistration({ navigation, route }) {
           <View style={styles.headerContainer}>
             <Ionicons name="videocam-outline" size={32} color="#C26015" />
             <Text style={styles.title}>
-              {camera_id ? 'Update Camera' : 'Register Camera'}
+              {camera_id ? 'Atualizar Câmera' : 'Cadastrar Câmera'}
             </Text>
           </View>
 
