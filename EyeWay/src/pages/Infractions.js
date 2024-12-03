@@ -10,36 +10,22 @@ import {
   Dimensions,
   RefreshControl,
   TouchableOpacity,
-  Alert
+  Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Navbar from '../components/Navbar';
 
-export default function Infractions({ navigation }) {
+export default function CombinedInfractions({ navigation }) {
   const [infractions, setInfractions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
-  const isWeb = Platform.OS === 'web';
 
   const baseUrl = Platform.OS === 'android'
     ? 'http://10.0.2.2:3000'
     : 'http://localhost:3000';
-  
-  const api_url = `${baseUrl}/infractions`;
 
-  useEffect(() => {
-    const testApi = async () => {
-      try {
-        const response = await fetch(api_url);
-        console.log('API test response:', response.status);
-      } catch (err) {
-        console.error('API test failed:', err);
-      }
-    };
-    testApi();
-  }, []);
-  
   useEffect(() => {
     const handleDimensionChange = () => {
       setDimensions(Dimensions.get('window'));
@@ -53,16 +39,33 @@ export default function Infractions({ navigation }) {
     };
   }, []);
 
-  const showConfirmDialog = (title, message, onConfirm) => {
+  const handleDeleteAllAutomated = async () => {
+    const performDeleteAll = async () => {
+      try {
+        const response = await fetch(`${baseUrl}/deleteAll`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete infractions');
+        }
+        
+        showAlert('Sucesso', 'Infrações automáticas deletadas com sucesso');
+        fetchAllInfractions();
+      } catch (error) {
+        console.error('Delete error:', error);
+        showAlert('Erro', 'Falha ao deletar as infrações');
+      }
+    };
+  
     if (Platform.OS === 'web') {
-      const result = window.confirm(message);
-      if (result) {
-        onConfirm();
+      if (window.confirm('Tem certeza que deseja deletar todas as infrações automáticas?')) {
+        await performDeleteAll();
       }
     } else {
       Alert.alert(
-        title,
-        message,
+        'Confirmar Exclusão',
+        'Tem certeza que deseja deletar todas as infrações automáticas?',
         [
           {
             text: 'Cancelar',
@@ -70,13 +73,63 @@ export default function Infractions({ navigation }) {
           },
           {
             text: 'Deletar',
-            onPress: onConfirm,
+            onPress: performDeleteAll,
             style: 'destructive'
           }
-        ],
-        { cancelable: true }
+        ]
       );
     }
+  };
+
+  const handleDeleteInfraction = async (infractionId) => {
+    const performDelete = async () => {
+      try {
+        const numericId = infractionId.replace('manual-', '');
+        const response = await fetch(`${baseUrl}/manualInfractions/${numericId}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete infraction');
+        }
+        
+        showAlert('Sucesso', 'Infração deletada com sucesso');
+        fetchAllInfractions();
+      } catch (error) {
+        console.error('Delete error:', error);
+        showAlert('Erro', 'Falha ao deletar a infração');
+      }
+    };
+  
+    if (Platform.OS === 'web') {
+      if (window.confirm('Tem certeza que deseja deletar esta infração?')) {
+        await performDelete();
+      }
+    } else {
+      Alert.alert(
+        'Confirmar Exclusão',
+        'Tem certeza que deseja deletar esta infração?',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel'
+          },
+          {
+            text: 'Deletar',
+            onPress: performDelete,
+            style: 'destructive'
+          }
+        ]
+      );
+    }
+  };
+
+  const handleUpdateInfraction = (infraction) => {
+    const numericId = infraction.id.replace('manual-', '');
+    navigation.navigate('UpdateManualInfraction', {
+      infractionId: numericId,
+      infractionData: infraction
+    });
   };
 
   const showAlert = (title, message) => {
@@ -87,20 +140,68 @@ export default function Infractions({ navigation }) {
     }
   };
 
-  const fetchInfractions = async () => {
-    console.log('Fetching infractions...');
+  const fetchAllInfractions = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(api_url);
-      console.log('Fetch response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch infractions');
+      const [automatedResponse, manualResponse] = await Promise.all([
+        fetch(`${baseUrl}/infractions`),
+        fetch(`${baseUrl}/manualInfractions`)
+      ]);
+
+      if (!automatedResponse.ok) {
+        throw new Error('Não foi possível carregar as infrações');
       }
-      const data = await response.json();
-      console.log('Fetched infractions count:', data.length);
-      setInfractions(data);
+
+      const automatedData = await automatedResponse.json();
+      let formattedManualData = [];
+
+      try {
+        if (manualResponse.ok) {
+          const manualData = await manualResponse.json();
+          
+          if (manualData.results && manualData.results.length > 0) {
+            formattedManualData = manualData.results.map(manual => {
+              let imageBase64 = null;
+              if (manual.image && manual.image.data) {
+                const bytes = new Uint8Array(manual.image.data);
+                let binary = '';
+                for (let i = 0; i < bytes.byteLength; i++) {
+                  binary += String.fromCharCode(bytes[i]);
+                }
+                imageBase64 = window.btoa(binary);
+              }
+
+              return {
+                id: `manual-${manual.id_manual}`,
+                camera_id: manual.camera_id,
+                vehicle_type: manual.vehicle_type,
+                infraction_type: manual.infraction_type,
+                status: manual.status,
+                timestamp: new Date(manual.date).getTime(),
+                image_base64: imageBase64,
+                camera_name: 'Manual Entry',
+                isManual: true,
+                user: manual.user,
+                address: manual.adress,
+                additionalText: manual.text
+              };
+            });
+          }
+        }
+      } catch (manualError) {
+        console.error('Error fetching manual infractions:', manualError);
+      }
+
+      const combinedInfractions = [...automatedData, ...formattedManualData]
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      setInfractions(combinedInfractions);
       setError(null);
+
+      if (combinedInfractions.length === 0) {
+        setError('Não há nenhuma infração no momento');
+      }
+
     } catch (err) {
       console.error('Fetch error:', err);
       setError(err.message);
@@ -110,111 +211,16 @@ export default function Infractions({ navigation }) {
     }
   };
 
-  const handleRefreshPress = async () => {
-    setLoading(true);
-    try {
-      await fetchInfractions();
-      showAlert('Sucesso', 'Lista atualizada com sucesso!');
-    } catch (error) {
-      console.error('Refresh error:', error);
-      showAlert('Erro', 'Falha ao atualizar a lista');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeletePress = () => {
-    console.log('Delete button pressed');
-    showConfirmDialog(
-      'Confirmação',
-      'Tem certeza que deseja deletar todas as infrações?',
-      deleteAllInfractions
-    );
-  };
-
-  const deleteAllInfractions = async () => {
-    console.log('Delete confirmation accepted');
-    setLoading(true);
-    try {
-      const deleteUrl = `${baseUrl}/deleteAll`;
-      console.log('Attempting to delete at URL:', deleteUrl);
-      
-      const response = await fetch(deleteUrl, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('Delete response status:', response.status);
-
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        console.log('Response is not JSON:', e);
-        throw new Error('Invalid server response');
-      }
-
-      if (!response.ok) {
-        throw new Error(result.message || `Server returned ${response.status}`);
-      }
-
-      setInfractions([]);
-      showAlert(
-        'Sucesso',
-        `Todas as infrações foram deletadas com sucesso. ${result.deletedCount || 0} registros removidos.`
-      );
-
-    } catch (err) {
-      console.error('Delete error:', err);
-      showAlert(
-        'Erro',
-        'Falha ao deletar infrações: ' + (err.message || 'Erro desconhecido')
-      );
-      setError(err.message || 'Erro desconhecido');
-    } finally {
-      setLoading(false);
-      await fetchInfractions();
-    }
-  };
-
-  const updateInfractionStatus = async (infractionId, status) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${api_url}/${infractionId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update status');
-      }
-
-      await fetchInfractions();
-      showAlert('Sucesso', 'Status atualizado com sucesso');
-    } catch (err) {
-      showAlert('Erro', 'Falha ao atualizar o status: ' + err.message);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchInfractions();
-  }, []);
-
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    fetchInfractions().then(() => setRefreshing(false));
+    fetchAllInfractions().then(() => setRefreshing(false));
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchAllInfractions();
+    }, [])
+  );
 
   const getImageDimensions = () => {
     const isDesktop = dimensions.width > 768;
@@ -261,8 +267,6 @@ export default function Infractions({ navigation }) {
     </TouchableOpacity>
   );
 
-  console.log("Component rendered");
-
   if (loading) {
     return (
       <View style={styles.mainContainer}>
@@ -296,35 +300,38 @@ export default function Infractions({ navigation }) {
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.deleteAllButton}
-                onPress={handleDeletePress}
-                activeOpacity={0.7}
+                onPress={handleDeleteAllAutomated}
               >
-                <Text style={styles.deleteAllButtonText}>
-                  Deletar Todas as Infrações
-                </Text>
+                <Text style={styles.deleteAllButtonText}>Deletar Infrações Automáticas</Text>
               </TouchableOpacity>
-              
               <TouchableOpacity
                 style={styles.refreshButton}
-                onPress={handleRefreshPress}
-                activeOpacity={0.7}
+                onPress={onRefresh}
               >
-                <Text style={styles.refreshButtonText}>
-                  Atualizar
-                </Text>
+                <Text style={styles.refreshButtonText}>Atualizar</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {error ? (
-            <Text style={styles.errorText}>Erro: {error}</Text>
+            <View style={styles.emptyStateContainer}>
+              <Text style={styles.emptyStateText}>{error}</Text>
+            </View>
           ) : infractions.length === 0 ? (
             <View style={styles.emptyStateContainer}>
-              <Text style={styles.emptyStateText}>Nenhuma infração encontrada</Text>
+              <Text style={styles.emptyStateText}>Não há nenhuma infração no momento</Text>
             </View>
           ) : (
             infractions.map((infraction) => (
-              <View key={infraction.id} style={styles.infractionCard}>
+              <View key={infraction.id} style={[
+                styles.infractionCard,
+                infraction.isManual && styles.manualInfractionCard
+              ]}>
+                {infraction.isManual && (
+                  <View style={styles.manualBadge}>
+                    <Text style={styles.manualBadgeText}>Manual</Text>
+                  </View>
+                )}
                 <View style={styles.imageContainer}>
                   <Image
                     source={{ uri: `data:image/jpeg;base64,${infraction.image_base64}` }}
@@ -345,19 +352,51 @@ export default function Infractions({ navigation }) {
                   <Text style={styles.infractionDetail}>
                     Status atual: {infraction.status || 'Pendente'}
                   </Text>
+                  {infraction.isManual && (
+                    <>
+                      <Text style={styles.infractionDetail}>
+                        Usuário: {infraction.user}
+                      </Text>
+                      <Text style={styles.infractionDetail}>
+                        Endereço: {infraction.address}
+                      </Text>
+                      <Text style={styles.infractionDetail}>
+                        Observações: {infraction.additionalText}
+                      </Text>
+                    </>
+                  )}
                   <View style={styles.statusButtonsContainer}>
-                    <StatusButton
-                      label="Confirmar"
-                      status="Verificado"
-                      currentStatus={infraction.status}
-                      onPress={() => updateInfractionStatus(infraction.id, 'Verificado')}
-                    />
-                    <StatusButton
-                      label="Alerta falso"
-                      status="Alerta falso"
-                      currentStatus={infraction.status}
-                      onPress={() => updateInfractionStatus(infraction.id, 'Alerta falso')}
-                    />
+                    {infraction.isManual ? (
+                      <>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.updateButton]}
+                          onPress={() => handleUpdateInfraction(infraction)}
+                        >
+                          <Text style={styles.actionButtonText}>Atualizar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.deleteButton]}
+                          onPress={() => handleDeleteInfraction(infraction.id)}
+                        >
+                          <Text style={styles.actionButtonText}>Deletar</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        <StatusButton
+                          label="Confirmar"
+                          status="Verificado"
+                          currentStatus={infraction.status}
+                          onPress={() => updateInfractionStatus(infraction.id, 'Verificado')}
+                        />
+                        <StatusButton
+                          label="Alerta falso"
+                          status="Alerta falso"
+                          currentStatus={infraction.status}
+                          onPress={() => updateInfractionStatus(infraction.id, 'Alerta falso')}
+                        />
+                      </>
+                    )}
                   </View>
                 </View>
               </View>
@@ -368,6 +407,7 @@ export default function Infractions({ navigation }) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   mainContainer: {
@@ -422,6 +462,71 @@ const styles = StyleSheet.create({
       minHeight: '100%',
     }),
   },
+  headerContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  deleteAllButton: {
+    backgroundColor: '#DC3545',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        backgroundColor: '#c82333',
+      },
+    }),
+  },
+  refreshButton: {
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        backgroundColor: '#357abd',
+      },
+    }),
+  },
+  deleteAllButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  refreshButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -435,6 +540,26 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '100%',
     maxWidth: '100%',
+  },
+  manualInfractionCard: {
+    borderWidth: 2,
+    borderColor: '#4A90E2',
+    position: 'relative',
+  },
+  manualBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#4A90E2',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  manualBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   imageContainer: {
     alignItems: 'center',
@@ -491,80 +616,37 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#AAAAAA',
-    marginBottom: 20,
-  },
-  errorText: {
-    color: '#FF6B6B',
-    fontSize: 16,
-  },
-  headerContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 20,
-  },
-  deleteAllButton: {
-    backgroundColor: '#DC3545',
-    paddingHorizontal: 20,
+  actionButton: {
+    flex: 1,
+    paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    alignItems: 'center',
+    minWidth: 100,
+    borderWidth: 1,
   },
-  refreshButton: {
+  updateButton: {
     backgroundColor: '#4A90E2',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    borderColor: '#4A90E2',
   },
-  deleteAllButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
+  deleteButton: {
+    backgroundColor: '#DC3545',
+    borderColor: '#DC3545',
   },
-  refreshButtonText: {
+  actionButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
   },
   emptyStateContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40
+    paddingVertical: 40,
   },
   emptyStateText: {
     color: '#AAAAAA',
     fontSize: 16,
-    textAlign: 'center'
-  }
+    textAlign: 'center',
+  },
 });
