@@ -26,6 +26,8 @@ export default function CombinedInfractions({ navigation }) {
     ? 'http://10.0.2.2:3000'
     : 'http://localhost:3000';
 
+  const api_url = `${baseUrl}/infractions`;
+
   useEffect(() => {
     const handleDimensionChange = () => {
       setDimensions(Dimensions.get('window'));
@@ -38,6 +40,31 @@ export default function CombinedInfractions({ navigation }) {
       }
     };
   }, []);
+
+  const updateInfractionStatus = async (infractionId, status) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${api_url}/${infractionId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+
+      await fetchAllInfractions();
+      showAlert('Sucesso', 'Status atualizado com sucesso');
+    } catch (err) {
+      showAlert('Erro', 'Falha ao atualizar o status: ' + err.message);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDeleteAllAutomated = async () => {
     const performDeleteAll = async () => {
