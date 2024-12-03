@@ -8,15 +8,51 @@ import {
     TextInput,
     Platform,
     ScrollView,
-    Alert
+    Alert,
 } from 'react-native';
-import { useStore } from '../store/globalStore';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/Navbar';
 
+const FormInput = ({ label, placeholder, value, onChangeText, multiline = false }) => (
+  <View style={styles.inputContainer}>
+    <Text style={styles.inputLabel}>{label}</Text>
+    <TextInput
+      placeholder={placeholder}
+      value={value}
+      onChangeText={onChangeText}
+      style={[
+        styles.input,
+        multiline && { height: 120, textAlignVertical: 'top' }
+      ]}
+      placeholderTextColor="#666"
+      multiline={multiline}
+      numberOfLines={multiline ? 5 : 1}
+    />
+  </View>
+);
+
+const FormSelect = ({ label, value, onValueChange, options }) => (
+  <View style={styles.inputContainer}>
+    <Text style={styles.inputLabel}>{label}</Text>
+    <View style={styles.pickerContainer}>
+      <Picker
+        selectedValue={value}
+        onValueChange={onValueChange}
+        style={styles.picker}
+        dropdownIconColor="#5AB1BB"
+      >
+        <Picker.Item label="Selecione uma opção" value="" />
+        {options.map((option, index) => (
+          <Picker.Item label={option} value={option} key={index} />
+        ))}
+      </Picker>
+    </View>
+  </View>
+);
+
 export default function Operation({ navigation }) {
-    // State declarations
     const [foto, setFoto] = useState(null);
     const [infractionInfo, setInfractionInfo] = useState({
         date: '',
@@ -30,43 +66,48 @@ export default function Operation({ navigation }) {
         camera_id: -1
     });
 
-    // Constants
-    const API_URL = Platform.OS === 'android' ? "http://10.0.2.2:3000" : "http://localhost:3000";
     const isWeb = Platform.OS === 'web';
+    const API_URL = Platform.OS === 'android' ? "http://10.0.2.2:3000" : "http://localhost:3000";
 
     const opcoesOcorrencia = [
-        "Estacionamento em frente ao portão",
+        "Estacionado em frente ao portão",
         "Estacionado em vaga de carga e descarga",
-        "estacionamento vaga PCD sem carteirinha",
-        "estacionamento vaga 60+ sem carteirinha",
+        "Estacionado em vaga PCD sem carteirinha",
+        "Estacionado em vaga 60+ sem carteirinha",
         "Estacionado na contra mão",
         "Estacionado em cima de calçada",
         "Outro"
     ];
 
-    const opcoesVeiculo = [
-        "Carro",
-        "Motocicleta",
-        "Ônibus",
-        "Caminhão",
-    ];
+    const opcoesVeiculo = ["Carro", "Motocicleta", "Ônibus", "Caminhão"];
 
-    // Helper functions
-    const saveInfractionData = async (infractionData) => {
-        const response = await fetch(`${API_URL}/manualInfractions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(infractionData)
-        });
+    const showAlert = (title, message, onConfirm = null) => {
+        if (isWeb) {
+            window.alert(message);
+            if (onConfirm) onConfirm();
+        } else {
+            Alert.alert(title, message, onConfirm ? [{ text: 'OK', onPress: onConfirm }] : undefined);
+        }
+    };
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Erro ao salvar a infração');
+    const handleFoto = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+            showAlert("Permissão Negada", "Permissão para acessar a galeria foi negada.");
+            return;
         }
 
-        return response.json();
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            const base64 = await convertImageToBase64(result.assets[0].uri);
+            setInfractionInfo(prev => ({ ...prev, imageData: base64 }));
+            setFoto(result.assets[0].uri);
+        }
     };
 
     const convertImageToBase64 = async (uri) => {
@@ -80,368 +121,141 @@ export default function Operation({ navigation }) {
         });
     };
 
-    // Event handlers
-    const handleFoto = async () => {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permissionResult.granted === false) {
-            alert("Permissão para acessar a galeria foi negada.");
-            return;
-        }
-
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 1,
-        });
-
-        if (!result.canceled) {
-            const base64 = await convertImageToBase64(result.assets[0].uri);
-            setInfractionInfo(prev => ({
-                ...prev,
-                imageData: base64
-            }));
-            setFoto(result.assets[0].uri);
-        }
-    };
-
     const handleSave = useCallback(async () => {
         const requiredFields = {
-            date: infractionInfo.date,
-            user: infractionInfo.user,
-            adress: infractionInfo.adress, // Matching backend spelling
-            text: infractionInfo.text,
-            vehicle_type: infractionInfo.vehicle_type,
-            infraction_type: infractionInfo.infraction_type,
-            imageData: infractionInfo.imageData
+            date: 'Data',
+            user: 'Agentes',
+            adress: 'Endereço',
+            text: 'Observação',
+            vehicle_type: 'Tipo de Veículo',
+            infraction_type: 'Tipo da Ocorrência',
+            imageData: 'Foto'
         };
 
         const missingFields = Object.entries(requiredFields)
-            .filter(([key, value]) => !value || String(value).trim() === '')
-            .map(([key]) => key);
+            .filter(([key, _]) => !infractionInfo[key] || String(infractionInfo[key]).trim() === '')
+            .map(([_, label]) => label);
 
         if (missingFields.length > 0) {
-            const message = `Por favor, preencha os seguintes campos obrigatórios: ${missingFields
-                .map(field => field.charAt(0).toUpperCase() + field.slice(1))
-                .join(', ')}`;
-
-            if (isWeb) {
-                window.alert(message);
-            } else {
-                Alert.alert("Campos Obrigatórios", message);
-            }
+            showAlert(
+                "Campos Obrigatórios",
+                `Por favor, preencha os seguintes campos: ${missingFields.join(', ')}`
+            );
             return;
         }
 
         try {
-            const infractionData = {
-                date: infractionInfo.date,
-                user: infractionInfo.user,
-                adress: infractionInfo.adress,
-                text: infractionInfo.text,
-                status: "Pendente",
-                vehicle_type: infractionInfo.vehicle_type,
-                infraction_type: infractionInfo.infraction_type,
-                image: infractionInfo.imageData,
-                camera_id: -1
-            };
-
-            await saveInfractionData(infractionData);
-
-            const successMessage = "Infração cadastrada com sucesso!";
-            const handleSuccess = () => {
-                setInfractionInfo({
-                    date: '',
-                    user: '',
-                    adress: '',
-                    image: '',
-                    text: '',
-                    status: '',
-                    vehicle_type: '',
-                    infraction_type: '',
+            const response = await fetch(`${API_URL}/manualInfractions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...infractionInfo,
+                    status: "Pendente",
+                    image: infractionInfo.imageData,
                     camera_id: -1
-                });
-                navigation.navigate('Manual Infractions');
-            };
+                })
+            });
 
-            if (isWeb) {
-                window.alert(successMessage);
-                handleSuccess();
-            } else {
-                Alert.alert("Sucesso", successMessage, [
-                    { text: "OK", onPress: handleSuccess }
-                ]);
+            if (!response.ok) {
+                throw new Error('Erro ao salvar a infração');
             }
+
+            showAlert(
+                "Sucesso",
+                "Infração cadastrada com sucesso!",
+                () => navigation.replace('Infractions')
+            );
         } catch (error) {
             console.error(error);
-            const errorMessage = error.message || "Ocorreu um erro ao salvar a infração. Tente novamente.";
-
-            if (isWeb) {
-                window.alert(errorMessage);
-            } else {
-                Alert.alert("Erro", errorMessage);
-            }
+            showAlert("Erro", "Ocorreu um erro ao salvar a infração. Tente novamente.");
         }
     }, [infractionInfo, navigation]);
 
-    // Render
     return (
-        <View style={[
-            estilos.container,
-            isWeb && {
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: '#1E1E1E',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-            }
-        ]}>
+        <View style={styles.container}>
             <ScrollView 
-                contentContainerStyle={estilos.scrollViewContent}
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollViewContent}
                 keyboardShouldPersistTaps="handled"
             >
-                <View style={[
-                    estilos.card,
-                    isWeb && {
-                        maxWidth: 400,
-                        width: '90%',
-                        padding: 40,
-                        backgroundColor: '#2E2D2D',
-                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
-                        marginTop: 0,
-                        marginBottom: 0
-                    }
-                ]}>
-                    <View style={estilos.containerLogo}>
+                <View style={styles.formContainer}>
+                    <View style={styles.header}>
                         <Image
                             source={require('../assets/LogoComNomeCompletoEyeWay.png')}
-                            style={[
-                                estilos.logo,
-                                isWeb && {
-                                    width: 200,
-                                    height: 80,
-                                    marginBottom: 20
-                                }
-                            ]}
+                            style={styles.logo}
                         />
+                        <Text style={styles.title}>Operação externa</Text>
                     </View>
 
-                    <Text style={[
-                        estilos.textColor,
-                        isWeb && {
-                            fontSize: 28,
-                            marginBottom: 30,
-                            color: '#5AB1BB'
-                        }
-                    ]}>
-                        Operação externa
-                    </Text>
-
-                    <View style={{ width: '100%' }}>
-                        <Text style={[
-                            estilos.textInput,
-                            isWeb && {
-                                color: '#5AB1BB',
-                                marginBottom: 8
-                            }
-                        ]}>Data da ocorrência</Text>
-                        <TextInput
-                            placeholder='AAAA-MM-DD'
+                    <View style={styles.formContent}>
+                        <FormInput
+                            label="Data da ocorrência"
+                            placeholder="AAAA-MM-DD"
                             value={infractionInfo.date}
                             onChangeText={(text) => setInfractionInfo(prev => ({...prev, date: text}))}
-                            style={[
-                                estilos.input,
-                                isWeb && {
-                                    backgroundColor: '#1E1E1E',
-                                    borderColor: '#404040',
-                                    borderWidth: 1,
-                                    borderRadius: 8,
-                                    padding: 12,
-                                    marginBottom: 20,
-                                    color: '#FFFFFF',
-                                    outline: 'none',
-                                    width: '100%'
-                                }
-                            ]}
-                            placeholderTextColor="#666"
                         />
 
-                        <Text style={[
-                            estilos.textInput,
-                            isWeb && {
-                                color: '#5AB1BB',
-                                marginBottom: 8
-                            }
-                        ]}>Endereço da ocorrência</Text>
-                        <TextInput
-                            placeholder='ex: R. Prof. João Cândido, 1213'
+                        <FormInput
+                            label="Endereço da ocorrência"
+                            placeholder="ex: R. Prof. João Cândido, 1213"
                             value={infractionInfo.adress}
-                            onChangeText={(text) => setInfractionInfo(prev => ({
-                                ...prev, 
-                                adress: text
-                            }))}
-                            style={[
-                                estilos.input,
-                                isWeb && {
-                                    backgroundColor: '#1E1E1E',
-                                    borderColor: '#404040',
-                                    borderWidth: 1,
-                                    borderRadius: 8,
-                                    padding: 12,
-                                    marginBottom: 20,
-                                    color: '#FFFFFF',
-                                    outline: 'none',
-                                    width: '100%'
-                                }
-                            ]}
-                            placeholderTextColor="#666"
-                            autoCapitalize="none"
-                            keyboardType="default"
+                            onChangeText={(text) => setInfractionInfo(prev => ({...prev, adress: text}))}
                         />
 
-                        <Text style={[
-                            estilos.textInput,
-                            isWeb && {
-                                color: '#5AB1BB',
-                                marginBottom: 8
-                            }
-                        ]}>Nomes dos Agentes na ocorrência:</Text>
-                        <TextInput
-                            placeholder='ex: João e Maria'
+                        <FormInput
+                            label="Nomes dos Agentes na ocorrência"
+                            placeholder="ex: João e Maria"
                             value={infractionInfo.user}
-                            onChangeText={(text) => setInfractionInfo(prev => ({
-                                ...prev, 
-                                user: text
-                            }))}
-                            style={[
-                                estilos.input,
-                                isWeb && {
-                                    backgroundColor: '#1E1E1E',
-                                    borderColor: '#404040',
-                                    borderWidth: 1,
-                                    borderRadius: 8,
-                                    padding: 12,
-                                    marginBottom: 20,
-                                    color: '#FFFFFF',
-                                    outline: 'none',
-                                    width: '100%'
-                                }
-                            ]}
-                            placeholderTextColor="#666"
-                            autoCapitalize="none"
-                            keyboardType="default"
+                            onChangeText={(text) => setInfractionInfo(prev => ({...prev, user: text}))}
                         />
 
-                        <Text style={estilos.textInput}>Tipo da ocorrência:</Text>
-                        <View style={estilos.pickerContainer}>
-                            <Picker
-                                selectedValue={infractionInfo.infraction_type}
-                                onValueChange={(itemValue) => setInfractionInfo(prev => ({
-                                    ...prev,
-                                    infraction_type: itemValue
-                                }))}
-                                style={Platform.OS === 'ios' ? estilos.pickerIOS : estilos.picker}
-                                dropdownIconColor="#5AB1BB"
-                            >
-                                <Picker.Item label="Selecione uma opção" value="" />
-                                {opcoesOcorrencia.map((opcao, index) => (
-                                    <Picker.Item label={opcao} value={opcao} key={index} />
-                                ))}
-                            </Picker>
-                        </View>
+                        <FormSelect
+                            label="Tipo da ocorrência"
+                            value={infractionInfo.infraction_type}
+                            onValueChange={(value) => setInfractionInfo(prev => ({...prev, infraction_type: value}))}
+                            options={opcoesOcorrencia}
+                        />
 
-                        <Text style={estilos.textInput}>Tipo do Veículo:</Text>
-                        <View style={estilos.pickerContainer}>
-                            <Picker
-                                selectedValue={infractionInfo.vehicle_type}
-                                onValueChange={(itemValue) => setInfractionInfo(prev => ({
-                                    ...prev,
-                                    vehicle_type: itemValue
-                                }))}
-                                style={Platform.OS === 'ios' ? estilos.pickerIOS : estilos.picker}
-                                dropdownIconColor="#5AB1BB"
-                            >
-                                <Picker.Item label="Selecione uma opção" value="" />
-                                {opcoesVeiculo.map((opcao, index) => (
-                                    <Picker.Item label={opcao} value={opcao} key={index} />
-                                ))}
-                            </Picker>
-                        </View>
+                        <FormSelect
+                            label="Tipo do Veículo"
+                            value={infractionInfo.vehicle_type}
+                            onValueChange={(value) => setInfractionInfo(prev => ({...prev, vehicle_type: value}))}
+                            options={opcoesVeiculo}
+                        />
 
-                        <Text style={estilos.textInput}>Observação:</Text>
-                        <TextInput
-                            placeholder='Digite aqui a observação da ocorrência...'
-                            multiline={true}
-                            numberOfLines={10}
+                        <FormInput
+                            label="Observação"
+                            placeholder="Digite aqui a observação da ocorrência..."
                             value={infractionInfo.text}
-                            onChangeText={(text) => setInfractionInfo(prev => ({
-                                ...prev,
-                                text: text
-                            }))}
-                            style={[
-                                estilos.input,
-                                isWeb && {
-                                    backgroundColor: '#1E1E1E',
-                                    borderColor: '#404040',
-                                    borderWidth: 1,
-                                    borderRadius: 8,
-                                    padding: 12,
-                                    marginBottom: 20,
-                                    color: '#FFFFFF',
-                                    outline: 'none',
-                                    width: '100%',
-                                    height: 200,
-                                    textAlign: 'start',
-                                    textAlignVertical: 'top'
-                                }
-                            ]}
-                            placeholderTextColor="#666"
-                            autoCapitalize="none"
-                            keyboardType="default"
+                            onChangeText={(text) => setInfractionInfo(prev => ({...prev, text: text}))}
+                            multiline={true}
                         />
 
-                        <Text style={estilos.textInput}>Enviar foto:</Text>
-                        <TouchableOpacity style={estilos.buttonContainer} onPress={handleFoto}>
-                            <Text style={estilos.buttonStyle}>Selecionar Foto</Text>
-                        </TouchableOpacity>
+                        <View style={styles.imageSection}>
+                            <Text style={styles.inputLabel}>Foto da ocorrência</Text>
+                            <TouchableOpacity 
+                                style={styles.imageButton} 
+                                onPress={handleFoto}
+                            >
+                                <Ionicons name="camera-outline" size={24} color="#FFF" />
+                                <Text style={styles.imageButtonText}>Selecionar Foto</Text>
+                            </TouchableOpacity>
 
-                        {foto && (
-                            <Image
-                                source={{ uri: foto }}
-                                style={estilos.preview}
-                                resizeMode="contain"
-                            />
-                        )}
+                            {foto && (
+                                <Image
+                                    source={{ uri: foto }}
+                                    style={styles.imagePreview}
+                                    resizeMode="contain"
+                                />
+                            )}
+                        </View>
 
                         <TouchableOpacity
-                            style={[
-                                estilos.buttonContainer,
-                                isWeb && {
-                                    backgroundColor: '#FF9C11',
-                                    padding: 14,
-                                    borderRadius: 8,
-                                    width: '100%',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    marginBottom: 20,':hover': {
-                                        backgroundColor: '#FFB443',
-                                        transform: 'translateY(-1px)'
-                                    }
-                                }
-                            ]}
+                            style={styles.submitButton}
                             onPress={handleSave}
                         >
-                            <Text style={[
-                                estilos.buttonStyle,
-                                isWeb && {
-                                    fontSize: 16,
-                                    fontWeight: 'bold'
-                                }
-                            ]}>Cadastrar ocorrência</Text>
+                            <Ionicons name="save-outline" size={24} color="#000" />
+                            <Text style={styles.submitButtonText}>Cadastrar ocorrência</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -451,115 +265,172 @@ export default function Operation({ navigation }) {
     );
 }
 
-const estilos = StyleSheet.create({
+const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#2E2D2D',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 40,
+        flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+        backgroundColor: '#3E3C3C',
+        height: Platform.OS === 'web' ? '100vh' : '100%',
+        overflow: Platform.OS === 'web' ? 'hidden' : 'visible',
     },
-    containerLogo: {
-        alignItems: 'center',
-        marginBottom: 30,
+    navbarContainer: {
+        width: 200,
+        backgroundColor: '#1B2B3A',
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        left: 0,
+    },
+    mobileNavbar: {
         width: '100%',
-        paddingTop: Platform.OS === 'web' ? 0 : 30,
+        backgroundColor: '#1B2B3A',
+        height: 60,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1,
     },
-    logo: {
-        width: '80%',
-        height: 120,
-        resizeMode: 'contain',
-    },
-    containerTexto: {
-        marginBottom: 20,
-        alignItems: 'center',
-    },
-    textColor: {
-        fontSize: 26,
-        color: '#5AB1BB',
-        fontWeight: 'bold',
-    },
-    card: {
-        backgroundColor: '#1E1E1E',
-        padding: 25,
-        borderRadius: 15,
-        width: '85%',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.4,
-        shadowRadius: 4,
-        marginBottom: 20,
-    },
-    textInput: {
-        fontSize: 16,
-        color: '#5AB1BB',
-        marginBottom: 10,
-        alignSelf: 'flex-start',
-    },
-    input: {
-        width: '100%',
-        borderRadius: 5,
-        borderColor: '#404040',
-        backgroundColor: '#333',
-        borderWidth: 1,
-        padding: 10,
-        marginBottom: 15,
-        color: '#FFF',
-    },
-    buttonContainer: {
-        backgroundColor: '#FF9C11',
-        borderRadius: 5,
-        width: '100%',
-        paddingVertical: 12,
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    buttonStyle: {
-        color: '#000',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    signupText: {
-        color: '#5AB1BB',
-        fontSize: 16,
-        marginTop: 20,
-        textDecorationLine: 'underline',
-    },
-    pickerContainer: {
-        width: '100%',
-        backgroundColor: '#333',
-        borderRadius: 5,
-        borderColor: '#404040',
-        borderWidth: 1,
-        marginBottom: 15,
-    },
-    picker: {
-        color: '#FFF',
-        backgroundColor: '#333',
-        height: 50,
-    },
-    pickerIOS: {
-        color: '#FFF',
-        height: 50,
-    },
-    pickerItem: {
-        color: '#FFF',
-        backgroundColor: '#000',
-        borderRadius: 15,
-        padding: 15,
-    },
-    preview: {
-        width: '100%',
-        height: 200,
-        marginBottom: 15,
-        borderRadius: 5,
-        borderColor: '#404040',
-        borderWidth: 1,
+    scrollView: {
+        flex: 1,
+        backgroundColor: '#3E3C3C',
+        ...(Platform.OS === 'web' && {
+            height: '100vh',
+            overflow: 'auto',
+        }),
     },
     scrollViewContent: {
-        flexGrow: 1,
+        padding: 20,
         alignItems: 'center',
-        paddingBottom: Platform.OS === 'web' ? 20 : 70,
+        alignSelf: 'center',
+        width: '100%',
+        paddingBottom: Platform.OS === 'web' ? 20 : 80, // Increased padding for mobile
+        ...(Platform.OS === 'web' && {
+            minHeight: '100%',
+        }),
+    },
+    formContainer: {
+        width: '100%',
+        maxWidth: Platform.OS === 'web' ? 600 : '100%',
+        alignSelf: 'center',
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    logo: {
+        width: Platform.OS === 'web' ? 200 : '80%',
+        height: Platform.OS === 'web' ? 80 : 120,
+        resizeMode: 'contain',
+        marginBottom: 20,
+    },
+    title: {
+        fontSize: 24,
+        color: '#5AB1BB',
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    formContent: {
+        backgroundColor: '#2A2A2A',
+        borderRadius: 12,
+        padding: 20,
+        gap: 15,
+    },
+    inputContainer: {
+        marginBottom: 15,
+    },
+    inputLabel: {
+        fontSize: 16,
+        color: '#5AB1BB',
+        marginBottom: 8,
+    },
+    input: {
+        backgroundColor: '#1E1E1E',
+        borderColor: '#404040',
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 12,
+        color: '#FFFFFF',
+        fontSize: 16,
+    },
+    pickerContainer: {
+        backgroundColor: '#1E1E1E',
+        borderColor: '#404040',
+        borderWidth: 1,
+        borderRadius: 8,
+        overflow: 'hidden',
+        ...(Platform.OS === 'web' && {
+            position: 'relative',
+            '& select': {
+                backgroundColor: '#1E1E1E',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                padding: '12px',
+                width: '100%',
+                borderWidth: 0,
+                outline: 'none',
+                color: '#FFFFFF',
+            },
+            '& select option': {
+                backgroundColor: '#1E1E1E',
+                color: '#FFFFFF',
+                padding: '12px',
+            },
+            '& select:focus': {
+                outline: 'none',
+                borderColor: '#5AB1BB',
+            },
+        }),
+    },
+    picker: {
+        color: '#FFFFFF',
+        height: 50,
+        ...(Platform.OS === 'web' && {
+            backgroundColor: '#1E1E1E',
+        }),
+    },
+    imageSection: {
+        marginTop: 10,
+    },
+    imageButton: {
+        backgroundColor: '#1E1E1E',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 12,
+        borderRadius: 8,
+        borderColor: '#404040',
+        borderWidth: 1,
+        gap: 8,
+    },
+    imageButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+    },
+    imagePreview: {
+        width: '100%',
+        height: 200,
+        marginTop: 10,
+        borderRadius: 8,
+        backgroundColor: '#1E1E1E',
+    },
+    submitButton: {
+        backgroundColor: '#FF9C11',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 15,
+        borderRadius: 8,
+        marginTop: 20,
+        gap: 8,
+        ...(Platform.OS === 'web' && {
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+        }),
+    },
+    submitButtonText: {
+        color: '#000',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });
